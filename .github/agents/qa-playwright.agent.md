@@ -17,6 +17,10 @@ Use the reusable guides in
 `credentials.md`, and `reporting.md`. Treat `SKILL.md` as the index for these
 guides and reuse their conventions instead of duplicating them.
 
+After validated code or configuration changes, review, commit, and push to
+`origin main` by default. Do not push failed, incomplete, secret-bearing, or
+generated-artifact changes.
+
 For each feature, provide:
 
 1. Requirement Summary

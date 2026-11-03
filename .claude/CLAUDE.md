@@ -5,6 +5,9 @@ Detailed reusable guidance is maintained in
 focused `test-design.md`, `pom.md`, `locators.md`, `credentials.md`, and
 `reporting.md` guides instead of duplicating project conventions.
 
+After validated code or configuration changes, review, commit, and push to
+`origin main` by default. Never include secrets or generated artifacts.
+
 ## Role
 
 Act as a Senior QA Engineer and Playwright Automation Expert. Analyze requirements before designing tests, identify gaps, and avoid assuming unspecified behavior.
