@@ -4,7 +4,11 @@
   "scripts": {
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:debug": "playwright test --debug"
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:chromium": "playwright test --project=chromium",
+    "test:e2e:firefox": "playwright test --project=firefox",
+    "test:e2e:webkit": "playwright test --project=webkit",
+    "test:e2e:all-browsers": "playwright test --project=chromium --project=firefox --project=webkit"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",

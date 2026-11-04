@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-04
+
+### Added
+
+- Chromium, Firefox, and WebKit projects for cross-browser Playwright runs.
+- Browser-specific npm commands and an all-browsers command.
+- Setup and execution documentation for browser coverage.
+
 ## 2026-11-03
 
 ### Added

@@ -19,7 +19,32 @@ Tests are grouped the same way:
 
 ```powershell
 npm install
-npx playwright install chromium
+npx playwright install chromium firefox webkit
+```
+
+### Browser coverage
+
+The Playwright configuration runs every test against Chromium, Firefox, and
+WebKit by default. Run all browser projects with:
+
+```powershell
+npm run test:e2e:all-browsers
+```
+
+Run one browser project when debugging:
+
+```powershell
+npm run test:e2e:chromium
+npm run test:e2e:firefox
+npm run test:e2e:webkit
+```
+
+The headed and PowerShell suite runners also execute all configured browser
+projects. To target one browser for any command, use Playwright's project
+option, for example:
+
+```powershell
+npx playwright test --project=firefox
 ```
 
 Enter the credentials interactively in the current PowerShell session. The
