@@ -2,6 +2,16 @@
 
 ## 2026-11-04
 
+### Changed
+
+- Enhanced the QA Playwright agent with a URL-driven autonomous workflow.
+- Added live-page inspection, locator discovery, root-cause repair, and
+  cross-browser validation guidance.
+- Added safety boundaries for credentials, destructive actions, and external
+  side effects.
+
+## 2026-11-04
+
 ### Added
 
 - Chromium, Firefox, and WebKit projects for cross-browser Playwright runs.
