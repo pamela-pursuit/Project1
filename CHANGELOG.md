@@ -4,6 +4,21 @@
 
 ### Added
 
+- Credential store: accounts per app and role are read from a git-ignored
+  JSON or Excel file (`credentials/`, `CREDENTIALS_FILE`, or
+  `CREDENTIALS_JSON`). Supports `{timestamp}` and `{random}` placeholders and
+  `E2E_<APP>_<ROLE>_<FIELD>` overrides (`test-data/credentials-store.cjs`).
+- `scripts/credentials.mjs` for masked checks and JSON/XLSX templates in
+  `test-data/templates/`.
+- `.claude/settings.json` deny rules that keep Claude from reading or
+  editing the credentials folder.
+- `-CredentialsFile` option on `scripts/run-e2e.ps1`.
+
+### Changed
+
+- E2E subagents now use the credential file instead of environment-variable
+  prompts.
+
 - URL-driven E2E automation agent: `/e2e-agent` orchestrator skill and ten
   Claude Code subagents under `.claude/agents/`.
 - `scripts/explore-app.mjs` for read-only application discovery.

@@ -10,8 +10,8 @@ You record what the application **does**, not what it probably does.
 ## Inputs
 
 The orchestrator supplies the app slug (kebab-case), the URL, the requested
-flow, an optional path prefix that bounds the application, and the names of
-any credential environment variables.
+flow, an optional path prefix that bounds the application, and the
+credential roles available for this app (from the credential file).
 
 ## Procedure
 
@@ -38,9 +38,15 @@ any credential environment variables.
    or delete data, or log out of a shared session. If observing a behavior
    would require one of these, record it as **Not observed: requires <action>**.
 4. **Authentication.** Detect it from password fields, login redirects, or
-   401/403 responses. Use credentials only from environment variables the
-   orchestrator names. Never print their values. If authentication is required
-   and the variables are unset, record the blocker and stop at the boundary.
+   401/403 responses. Check the available roles with
+   `node scripts/credentials.mjs check --app <app> --require <role>:<field>,...`.
+   Probes that sign in load accounts with
+   `require('../../../../test-data/credentials-store.cjs').getAccount(app, role)`
+   (adjust the relative path, or use `createRequire`). Never read the
+   credentials file, and never print account values or put them in
+   discovery.md or screenshots of filled password fields. If authentication is
+   required and no suitable role exists, record the blocker and stop at the
+   boundary.
 5. **Write** `test-plans/<app>/discovery.md`:
    - URL tested, final URL, redirects, HTTP status, browser, timestamp
    - application boundary (origin and path prefix) and environment guess

@@ -23,8 +23,14 @@ POM, locators, credentials, reporting). The scenario JSON contract is in
 - **App slug:** a kebab-case name derived from the host (for example
   `demowebshop.tricentis.com` becomes `demo-web-shop`), unless supplied. Reuse
   an existing `pages/<slug>/` when it matches the same app.
-- **Credentials:** environment variable **names** only. Never ask for values
-  in chat.
+- **Credentials:** come from the user's credential file (JSON or Excel), as
+  described in `.claude/skills/qa-playwright/credentials.md`. Run
+  `node scripts/credentials.mjs check --app <app>` to see which roles and
+  fields exist (values are masked). **Never read, print, or copy the file**,
+  and never ask for values in chat. If the app or a needed role or field is
+  missing, tell the user exactly which entry to add, for example
+  "add role `newUser` with `email`, `password` under `my-app`", and point
+  them to the templates in `test-data/templates/`.
 
 ## Hand-off files (the contract between agents)
 
@@ -39,7 +45,7 @@ POM, locators, credentials, reporting). The scenario JSON contract is in
 | `artifacts/<app>/` (git-ignored) | explorer, executor |
 | `test-plans/<app>/delivery-report.md` | delivery-reporter |
 
-Pass each subagent the app slug, URL, flow, credential variable names, and
+Pass each subagent the app slug, URL, flow, credential roles needed, and
 the paths it needs. Brief it fully, because the brief is all the context it
 gets.
 
@@ -51,7 +57,7 @@ gets.
 2. **application-explorer:** validates and crawls the URL.
    **Gate:** stop and report to the user if the URL is unreachable, has a
    certificate error, redirects to an unexpected host, or sits behind
-   authentication with no credential variables available. Do not fabricate
+   authentication with no matching role in the credential file. Do not fabricate
    selectors or results.
 3. **requirement-analyst:** writes requirements.md.
    **Gate:** if it returns **Blocking** questions, ask the user (one batched
@@ -105,19 +111,21 @@ without evidence and a confirmed requirement. **Ask the user before any
 irreversible or externally visible action**, including registering accounts
 on a third-party site.
 
-## Running without credentials in this session
+## Credentialed runs
 
-The Claude Code shell cannot answer hidden prompts. For credentialed suites,
-either the user sets the named variables before launching Claude Code, or
-the user runs:
+Tests load accounts from the credential file through
+`test-data/credentials-store.cjs`, so the agent runs credentialed suites
+without prompts. Before Phase 3 and before every run, verify the roles the
+suite needs with `node scripts/credentials.mjs check --app <app> --require <role>:<field>,...` and stop with a precise request to the
+user if anything is missing.
+
+For a file outside the repository (recommended, because this repository is
+synced by OneDrive), the user sets `CREDENTIALS_FILE` before launching
+Claude Code, or passes it to the runner:
 
 ```powershell
-.\scripts\run-e2e.ps1 -App <app> -BaseUrl <url> -SecretVars VAR1,VAR2
+.\scripts\run-e2e.ps1 -App <app> -BaseUrl <url> -CredentialsFile D:\secure\credentials.xlsx
 ```
-
-That runner prompts with hidden input, runs all three browsers, syncs the
-workbook, and clears the variables. Afterwards, continue from
-`artifacts/<app>/results.json`.
 
 ## Honesty
 

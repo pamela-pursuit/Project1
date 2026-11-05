@@ -17,7 +17,7 @@ and `.claude/skills/qa-playwright/pom.md` and `locators.md`.
 ```
 pages/<app>/<page>.page.ts         # one class per page/component; locators + actions + state checks
 tests/<app>/<area>.spec.ts         # business scenarios + assertions; titles start with [ID]
-fixtures/<app>.fixture.ts          # test.extend: page objects, env-backed credentials, data factories
+fixtures/<app>.fixture.ts          # test.extend: page objects, accounts via credentials-store, data factories
 test-data/<app>.data.ts            # non-secret constants + unique-data generators
 artifacts/<app>/{report,test-results,results.json}   # generated, git-ignored (TEST_SUITE=<app>)
 ```
@@ -39,10 +39,13 @@ Write `test-plans/<app>/architecture.md` containing:
    intent-named methods (`signIn`, `addToCart`, `expectValidationError`), the
    page objects returned on navigation, and page-specific synchronization
    (what each action waits for).
-3. **Fixtures:** the page-object fixtures and a `credentials` fixture that
-   reads the named env vars and throws a clear error, or calls
-   `test.skip(reason)` when the scenario is explicitly credential-optional.
-   Choose one approach and justify it.
+3. **Fixtures:** the page-object fixtures and one account fixture per
+   credential role (`existingUser`, `newUser`, ...), each calling
+   `getAccount('<app>', '<role>', { required: [...] })` from
+   `test-data/credentials-store.cjs`. A missing role or field throws a
+   descriptive error, which fails the test rather than silently passing it.
+   Use `test.skip(reason)` only for a scenario that is explicitly
+   credential-optional. List each role and its required fields.
 4. **Data strategy:** generators for unique emails or names, API setup and
    cleanup if an API was observed, and isolation between parallel browsers.
 5. **Spec mapping:** scenario ID to spec file and test title.

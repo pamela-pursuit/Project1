@@ -100,8 +100,8 @@ async function validate(app, data) {
     if (s.automationStatus === 'Blocked' && !s.failureNotes) errors.push(`${where}: Blocked requires failureNotes explaining the blocker`);
   }
   for (const d of data.testData) {
-    if (d.value && SECRET_HINT.test(`${d.key} ${d.notes ?? ''}`) && !String(d.source ?? '').startsWith('env:')) {
-      errors.push(`testData ${d.key}: secret-like data must use source "env:VAR" and no literal value`);
+    if (d.value && SECRET_HINT.test(`${d.key} ${d.notes ?? ''}`)) {
+      errors.push(`testData ${d.key}: secret-like data must use source "credentials:<role>.<field>" or "env:VAR" and no literal value`);
     }
   }
   for (const r of data.risks) if (r.type && !RISK_TYPES.includes(r.type)) warnings.push(`risk ${r.id}: non-standard type "${r.type}"`);
@@ -254,7 +254,11 @@ async function build(app, data) {
 
   const td = wb.addWorksheet('Test Data');
   addTable(td, ['Key', 'Value', 'Source', 'Used By', 'Notes'], data.testData.map((d) => [
-    d.key, String(d.source ?? '').startsWith('env:') ? '(from environment)' : d.value ?? '', d.source ?? '',
+    d.key,
+    String(d.source ?? '').startsWith('env:') ? '(from environment)'
+      : String(d.source ?? '').startsWith('credentials:') ? '(from credentials file)'
+      : d.value ?? '',
+    d.source ?? '',
     (d.usedBy ?? []).join(', '), d.notes ?? ''
   ]), [26, 32, 26, 28, 48]);
 

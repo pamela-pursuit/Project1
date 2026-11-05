@@ -27,7 +27,7 @@ node scripts/workbook.mjs build --app <app>      # write test-plans/<app>/<app>-
   Coverage, Automation Status, Page Object, Risk, Requirement Reference,
   Execution Status, Failure Notes, plus Spec File and Last Run. Frozen
   header, filters, and color-coded Priority and Execution Status.
-- **Test Data:** keys, values (secrets appear only as `(from environment)`),
+- **Test Data:** keys, values (secrets appear only as `(from credentials file)` or `(from environment)`),
   source, users, and notes.
 - **Coverage Summary:** live COUNTIFS of priority against automation status,
   execution status, test type, feature, latest run per browser, and

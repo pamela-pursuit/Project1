@@ -12,11 +12,12 @@ job.
 ## Environment
 
 Every run sets `TEST_SUITE=<app>` and `BASE_URL=<url>` so artifacts land in
-`artifacts/<app>/` and `results.json` is written there. Credentials must
-already be present as environment variables. Never prompt for or print them.
-If a required credential variable is unset, stop and report the variable
-names. The user runs `scripts/run-e2e.ps1 -SecretVars ...` themselves for
-credentialed runs.
+`artifacts/<app>/` and `results.json` is written there. Tests load
+accounts from the user's credential file (`credentials/credentials.json` or
+`.xlsx`, or `CREDENTIALS_FILE`). Before a credentialed run, verify the
+needed roles with `node scripts/credentials.mjs check --app <app> --require <role>:<field>,...`.
+If anything is missing, stop and report the exact app, role, and field to
+add. Never read the file, and never prompt for or print values.
 
 PowerShell form:
 

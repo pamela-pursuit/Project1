@@ -6,13 +6,15 @@
   .\scripts\run-e2e.ps1 -App demo-web-shop -BaseUrl https://demowebshop.tricentis.com
 
 .EXAMPLE
-  .\scripts\run-e2e.ps1 -App my-app -BaseUrl https://staging.example.com -SecretVars MY_APP_USER,MY_APP_PASSWORD
+  .\scripts\run-e2e.ps1 -App my-app -BaseUrl https://staging.example.com -CredentialsFile D:\secure\credentials.xlsx
 #>
 param(
   [Parameter(Mandatory)][ValidatePattern('^[a-z0-9][a-z0-9-]*$')][string]$App,
   [Parameter(Mandatory)][string]$BaseUrl,
   [string]$TestPath = "tests/$App",
   [ValidateSet('chromium', 'firefox', 'webkit')][string[]]$Browsers = @('chromium', 'firefox', 'webkit'),
+  # JSON or XLSX credential file (defaults to credentials/credentials.json|.xlsx).
+  [string]$CredentialsFile,
   # Environment variables to prompt for (hidden input) when not already set.
   [string[]]$SecretVars = @(),
   [string]$Grep,
@@ -24,9 +26,18 @@ if (-not [Uri]::TryCreate($BaseUrl, [UriKind]::Absolute, [ref]$uri) -or $uri.Sch
   throw "BaseUrl must be an absolute http(s) URL: $BaseUrl"
 }
 
+if ($CredentialsFile -and -not (Test-Path -LiteralPath $CredentialsFile -PathType Leaf)) {
+  throw "CredentialsFile not found: $CredentialsFile"
+}
+
 $promptedVars = @()
+$previousCredentialsFile = $env:CREDENTIALS_FILE
 $exitCode = 1
 try {
+  # Step 0: Point the credential store at the requested file and verify it (masked output).
+  if ($CredentialsFile) { $env:CREDENTIALS_FILE = (Resolve-Path -LiteralPath $CredentialsFile).Path }
+  node scripts/credentials.mjs check --app $App | Out-Host
+
   # Step 1: Collect missing secrets without echoing them.
   foreach ($name in $SecretVars) {
     if (-not [Environment]::GetEnvironmentVariable($name)) {
@@ -63,5 +74,6 @@ finally {
   # Step 4: Clear secrets this runner set, including on interruption.
   foreach ($name in $promptedVars) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
   Remove-Item Env:BASE_URL, Env:TEST_SUITE -ErrorAction SilentlyContinue
+  $env:CREDENTIALS_FILE = $previousCredentialsFile
 }
 exit $exitCode

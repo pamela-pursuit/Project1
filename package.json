@@ -11,7 +11,8 @@
     "test:e2e:all-browsers": "playwright test --project=chromium --project=firefox --project=webkit",
     "explore": "node scripts/explore-app.mjs",
     "workbook": "node scripts/workbook.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "credentials": "node scripts/credentials.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",

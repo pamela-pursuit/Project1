@@ -31,8 +31,13 @@ For fixes, the failure-investigator's diagnosis.
   that turn a failure into a pass.
 - **Independence.** Each test sets up its own state through fixtures, API,
   or fresh unique data, and runs alone and in any order on every browser.
-- **Secrets** are read only through the fixture from env vars. Never
-  hard-code, log, or `console.log` them.
+- **Accounts and secrets** are read only in `fixtures/<app>.fixture.ts` via
+  `getAccount('<app>', '<role>', { required: [...] })` from
+  `test-data/credentials-store.cjs` (see `.claude/skills/qa-playwright/credentials.md`).
+  Never read the credentials file yourself. Never hard-code, log,
+  `console.log`, or put account values in titles, annotations, or messages.
+  Registration tests rely on `{timestamp}` or `{random}` placeholders in the
+  file, or generate unique data in `test-data/<app>.data.ts`.
 - **Safety.** Never complete a real payment or order, send messages or
   emails, or delete real data. Stop before the irreversible step and assert
   the state just before it.

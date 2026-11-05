@@ -18,7 +18,7 @@
                                        //   Error Handling | Accessibility | Responsive | Cross-Browser
       "priority": "High",              // required: High | Medium | Low
       "preconditions": "Existing account; signed out",
-      "testData": "DEMO_SHOP_EXISTING_EMAIL, DEMO_SHOP_PASSWORD",
+      "testData": "credentials: existingUser (email, password)",
       "steps": ["Open Log in", "Enter email and password", "Select Log in"],  // required
       "expected": "Header shows the account email and a Log out link",       // required, observable
       "browsers": ["chromium", "firefox", "webkit"],  // default: all three
@@ -34,8 +34,8 @@
     }
   ],
   "testData": [
-    { "key": "existingEmail", "source": "env:DEMO_SHOP_EXISTING_EMAIL", "usedBy": ["DWS-001"], "notes": "Pre-registered account" },
-    { "key": "password", "source": "env:DEMO_SHOP_PASSWORD", "usedBy": ["DWS-001"] },
+    { "key": "existingEmail", "source": "credentials:existingUser.email", "usedBy": ["DWS-001"], "notes": "Pre-registered account" },
+    { "key": "password", "source": "credentials:existingUser.password", "usedBy": ["DWS-001"] },
     { "key": "newEmail", "value": "qa+<timestamp>@example.test", "source": "generated", "usedBy": ["DWS-010"], "notes": "Unique per run" }
   ],
   "risks": [
@@ -51,7 +51,7 @@
 Each Playwright test title starts with its scenario ID in brackets:
 
 ```ts
-test('[DWS-001] registered customer signs in', async ({ loginPage, credentials }) => { ... });
+test('[DWS-001] registered customer signs in', async ({ loginPage, existingUser }) => { ... });
 ```
 
 `sync` maps results through this tag. `validate` fails when an `Automated`

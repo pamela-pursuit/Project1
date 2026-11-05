@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./credentials/**)",
+      "Edit(./credentials/**)",
+      "Write(./credentials/**)",
+      "Read(**/credentials.json)",
+      "Read(**/credentials.xlsx)",
+      "Read(./.env)",
+      "Bash(cat credentials/*)",
+      "Bash(type credentials/*)",
+      "PowerShell(Get-Content credentials/*)",
+      "PowerShell(Get-Content ./credentials/*)",
+      "PowerShell(Get-Content .\\credentials\\*)"
+    ]
+  }
+}

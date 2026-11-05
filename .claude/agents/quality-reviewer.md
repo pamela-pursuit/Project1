@@ -34,7 +34,11 @@ check the files.
 6. **Assertions:** every test asserts an observable outcome that matches
    its Expected Result. Flag tests that never assert, and assertions weaker
    than the acceptance criteria.
-7. **Secrets and artifacts:** run
+7. **Secrets and artifacts:** accounts come only from fixtures that call
+   `getAccount` (no literals in specs, page objects, or test-data).
+   `credentials/` and any `credentials.json` or `credentials.xlsx` are
+   untracked (`git ls-files | grep -i credentials` shows only the store and
+   templates). Run
    `git diff --cached --name-only; git status --porcelain` and grep for
    password, token, api key, and bearer patterns. Confirm no `.env`, nothing
    under `artifacts/`, `test-results/`, `playwright-report/`, no videos, and

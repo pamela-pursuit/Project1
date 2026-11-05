@@ -34,8 +34,11 @@ Write `test-plans/<app>/requirements.md` with these sections:
 6. **Out of Scope / Unsafe Actions**: payments, real orders, emails or
    messages, account deletion, and anything irreversible. These are never
    automated against a real system.
-7. **Credential Needs**: the environment variable *names* required (for
-   example `MYAPP_USER`, `MYAPP_PASSWORD`), never values.
+7. **Credential Needs**: the roles and fields required in the user's
+   credential file (for example `existingUser: email, password` and
+   `newUser: firstName, lastName, email, password`), never values. Compare
+   them with the masked output of `node scripts/credentials.mjs check --app <app> --require <role>:<field>,...`
+   and list any missing entries.
 
 ## Rules
 
@@ -49,4 +52,4 @@ Write `test-plans/<app>/requirements.md` with these sections:
 ## Return to the orchestrator
 
 A short summary containing the REQ list, Blocking questions, and the
-credential variable names needed.
+credential roles and fields needed (and which are missing).

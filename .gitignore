@@ -4,3 +4,9 @@ test-results/
 artifacts/
 .env
 ~$*
+# Real credentials: never commit. Templates live in test-data/templates/.
+credentials/
+credentials.json
+credentials.xlsx
+*.credentials.json
+*.credentials.xlsx
