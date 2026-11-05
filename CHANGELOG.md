@@ -26,6 +26,16 @@
 
 - E2E subagents now use the credential file instead of environment-variable
   prompts.
+- `baseURL` now comes only from `BASE_URL` (set by `run-e2e.ps1`).
+- README, guides, and `.env.example` now describe the agent workflow instead
+  of individual suites.
+
+### Removed
+
+- Rahul Shetty and Tricentis Demo Web Shop test suites, page objects, and
+  their dedicated runners (`run-checkout-tests.ps1`,
+  `run-demo-web-shop-tests.ps1`, `run-demo-web-shop-error-test.ps1`), to
+  start fresh with agent-generated suites.
 
 ## 2026-11-04
 

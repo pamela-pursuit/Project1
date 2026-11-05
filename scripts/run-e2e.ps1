@@ -3,7 +3,7 @@
   Runs an application's E2E suite across browsers and refreshes its workbook.
 
 .EXAMPLE
-  .\scripts\run-e2e.ps1 -App demo-web-shop -BaseUrl https://demowebshop.tricentis.com
+  .\scripts\run-e2e.ps1 -App my-app -BaseUrl https://example.com
 
 .EXAMPLE
   .\scripts\run-e2e.ps1 -App my-app -BaseUrl https://staging.example.com -AccountsFile D:\secure\credentials.xlsx

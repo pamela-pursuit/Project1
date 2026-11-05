@@ -1,135 +1,35 @@
 # Project1
 
-## Checkout Playwright tests
+URL-driven Playwright TypeScript E2E automation. Give Claude Code an
+application URL, and it explores the app, builds an Excel scenario catalogue,
+writes Page Object Model tests, runs them on Chromium, Firefox, and WebKit,
+fixes failures at the root cause, and reports the result.
 
-This repository contains Playwright tests for the Rahul Shetty Academy
-ProtoCommerce demo checkout flow, organized with the Page Object Model (POM).
-
-Page objects are grouped by application:
-
-- `pages/rahul-shetty/`
-- `pages/demo-web-shop/`
-
-Tests are grouped the same way:
-
-- `tests/rahul-shetty/`
-- `tests/demo-web-shop/`
-
-### Setup
+## Setup
 
 ```powershell
 npm install
 npx playwright install chromium firefox webkit
 ```
 
-### Browser coverage
-
-The Playwright configuration runs every test against Chromium, Firefox, and
-WebKit by default. Run all browser projects with:
-
-```powershell
-npm run test:e2e:all-browsers
-```
-
-Run one browser project when debugging:
-
-```powershell
-npm run test:e2e:chromium
-npm run test:e2e:firefox
-npm run test:e2e:webkit
-```
-
-The headed and PowerShell suite runners also execute all configured browser
-projects. To target one browser for any command, use Playwright's project
-option, for example:
-
-```powershell
-npx playwright test --project=firefox
-```
-
-Enter the credentials interactively in the current PowerShell session. The
-password is hidden while typing and is not stored in the repository:
-
-```powershell
-$env:TEST_USERNAME = Read-Host "Username"
-$securePassword = Read-Host "Password" -AsSecureString
-$env:TEST_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-  [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
-)
-```
-
-Run the checkout tests with a local username prompt and hidden password prompt:
-
-```powershell
-.\scripts\run-checkout-tests.ps1
-```
-
-The suite does not submit a real payment. The target demo currently exposes
-shipping-location and terms controls but does not enforce them before purchase;
-the tests cover the supported flow and document cart-removal behavior rather
-than asserting unavailable validation.
-
-After a run, Rahul Shetty artifacts are saved under:
-
-```text
-artifacts/rahul-shetty/
-├── report/              # HTML report
-└── test-results/        # screenshots and failure attachments
-```
-
-Screenshots are captured for every test. Open the report with:
-
-```powershell
-npx playwright show-report artifacts/rahul-shetty/report
-```
-
-Run the suite again to refresh the report. An HTML report opened before a
-test run, or from a run with no discovered tests, can show 0 passed and 0
-failed. A valid Rahul run should show 2 tests and create screenshot files
-under `artifacts/rahul-shetty/test-results/`.
-
-TypeScript diagnostics can be checked with:
-
-```powershell
-npx tsc --noEmit
-```
-
-### Tricentis Demo Web Shop
-
-The separate Demo Web Shop POM suite is under `pages/demo-web-shop/` and
-`tests/demo-web-shop/`. Enter credentials locally and run it headed with:
-
-```powershell
-.\scripts\run-demo-web-shop-tests.ps1
-```
-
-The Demo Web Shop suite separates registration, duplicate-email validation, and
-login into independent tests. Use an existing registered customer email for
-the login test and a new email for the registration test. It does not submit
-an order or process a real payment.
-
-The suite also includes a negative registration test. The runner asks for an
-existing email and verifies that the application displays:
-`The specified email already exists`.
-
-To run only this error scenario:
-
-```powershell
-.\scripts\run-demo-web-shop-error-test.ps1
-```
-
-Demo Web Shop artifacts are saved under `artifacts/demo-web-shop/` and its
-negative-only run under `artifacts/demo-web-shop-error/`.
-
-## URL-driven E2E automation agent (Claude Code)
-
-Give Claude Code an application URL and it explores the app, builds an Excel
-scenario catalogue, writes Page Object Model tests, runs them on Chromium,
-Firefox, and WebKit, fixes failures at the root cause, and reports the result.
+## Start a new application
 
 ```text
 /e2e-agent https://example.com [flow to focus on] [--app my-app]
 ```
+
+Each application gets its own folders:
+
+```text
+test-plans/<app>/     # discovery, requirements, scenarios.json, Excel workbook, reports
+pages/<app>/          # page objects
+tests/<app>/          # specs (titles start with [ID])
+fixtures/<app>.fixture.ts
+test-data/<app>.data.ts
+artifacts/<app>/      # HTML report, screenshots, traces, results.json (git-ignored)
+```
+
+## URL-driven E2E automation agent (Claude Code)
 
 The orchestrator is `.claude/skills/e2e-agent/SKILL.md`. It coordinates ten
 subagents in `.claude/agents/`:
@@ -158,8 +58,17 @@ node scripts/workbook.mjs validate --app my-app
 node scripts/workbook.mjs sync --app my-app
 node scripts/workbook.mjs build --app my-app
 
-# Run any app on all three browsers, prompt for secrets locally, refresh workbook
-.\scripts\run-e2e.ps1 -App my-app -BaseUrl https://example.com -SecretVars MY_APP_USER,MY_APP_PASSWORD
+# Run an app on all three browsers and refresh its workbook
+.\scripts\run-e2e.ps1 -App my-app -BaseUrl https://example.com
+
+# Debug a single browser or scenario
+.\scripts\run-e2e.ps1 -App my-app -BaseUrl https://example.com -Browsers firefox -Grep "\[MYA-004\]" -Headed
+
+# Open the HTML report
+npx playwright show-report artifacts/my-app/report
+
+# Type-check
+npx tsc --noEmit
 ```
 
 Test titles start with their scenario ID, for example
@@ -167,7 +76,7 @@ Test titles start with their scenario ID, for example
 row in the workbook. The catalogue format is described in
 `.claude/skills/e2e-agent/scenario-schema.md`.
 
-### Credentials file (JSON or Excel)
+## Credentials file (JSON or Excel)
 
 Put login, registration, and other accounts in **one** file. The agent and
 the tests extract them from there, and you never type them into chat.
@@ -178,12 +87,12 @@ the tests extract them from there, and you never type them into chat.
 
    Alternatively, keep the file outside this OneDrive-synced folder and set
    `$env:CREDENTIALS_FILE = 'D:\secure\credentials.xlsx'` before starting
-   Claude Code.
+   Claude Code, or pass `-AccountsFile` to `run-e2e.ps1`.
 2. Fill one entry per application and role:
 
    ```json
    {
-     "demo-web-shop": {
+     "my-app": {
        "existingUser": { "email": "me@example.com", "password": "..." },
        "newUser": { "firstName": "QA", "lastName": "Bot", "email": "qa+{timestamp}@example.com", "password": "..." }
      }
@@ -196,7 +105,7 @@ the tests extract them from there, and you never type them into chat.
 3. Check it. This prints masked values only:
 
    ```powershell
-   node scripts/credentials.mjs check --app demo-web-shop
+   node scripts/credentials.mjs check --app my-app
    ```
 
 `credentials/`, `credentials.json`, and `credentials.xlsx` are git-ignored,

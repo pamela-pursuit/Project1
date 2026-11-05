@@ -16,12 +16,10 @@ const { describeStore, getAccount, envOverrideName } = store;
 
 const EXAMPLE = {
   _comment: 'Copy to credentials/credentials.json (git-ignored). Keys: app slug -> role -> fields. Placeholders: {timestamp}, {random}.',
-  'demo-web-shop': {
+  'my-app': {
     existingUser: { email: 'existing.customer@example.test', password: 'CHANGE_ME' },
-    newUser: { firstName: 'QA', lastName: 'Automation', email: 'qa+{timestamp}@example.test', password: 'CHANGE_ME' }
-  },
-  'rahul-shetty': {
-    standardUser: { username: 'your-username', password: 'CHANGE_ME' }
+    newUser: { firstName: 'QA', lastName: 'Automation', email: 'qa+{timestamp}@example.test', password: 'CHANGE_ME' },
+    admin: { username: 'admin-username', password: 'CHANGE_ME' }
   }
 };
 

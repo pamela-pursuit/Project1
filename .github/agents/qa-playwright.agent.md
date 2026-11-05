@@ -120,14 +120,13 @@ silently changing the default URL used by another application.
 ## Running and credentials
 
 Follow `.claude/skills/qa-playwright/credentials.md` for credential handling
-and `.claude/skills/qa-playwright/reporting.md` for output artifacts. Before
-running checkout tests, ask the user to provide credentials through the local
-runner. Never ask the user to paste passwords into chat, commit credentials,
-or print them in logs. Run from the repository root:
+and `.claude/skills/qa-playwright/reporting.md` for output artifacts.
+Accounts come from the user's git-ignored credential file (JSON or Excel),
+which is checked with `node scripts/credentials.mjs check --app <app>`
+(masked output). Never read that file, ask the user to paste passwords into
+chat, commit credentials, or print them in logs. Run from the repository
+root:
 
 ```powershell
-.\scripts\run-checkout-tests.ps1
+.\scripts\run-e2e.ps1 -App <app> -BaseUrl <url>
 ```
-
-The script hides password input, uses credentials only for the test process,
-and removes them from the PowerShell environment when the run finishes.

@@ -16,12 +16,8 @@ export default defineConfig({
     ['json', { outputFile: `${artifactDirectory}/results.json` }]
   ],
   use: {
-    baseURL:
-      process.env.BASE_URL ??
-      (process.env.DEMO_SHOP_NEW_EMAIL ||
-      process.env.DEMO_SHOP_EXISTING_EMAIL
-        ? 'https://demowebshop.tricentis.com'
-        : 'https://rahulshettyacademy.com/loginpagePractise/'),
+    // Set per application by scripts/run-e2e.ps1 (or BASE_URL in the shell).
+    baseURL: process.env.BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'on',
     video: 'retain-on-failure'

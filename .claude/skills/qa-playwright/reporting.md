@@ -6,11 +6,10 @@ Store generated output by suite:
 
 ```text
 artifacts/
-├── rahul-shetty/
-│   ├── report/
-│   └── test-results/
-├── demo-web-shop/
-└── demo-web-shop-error/
+└── <app>/
+    ├── report/          # HTML report
+    ├── test-results/    # screenshots, videos, traces
+    └── results.json     # JSON results synced into the workbook
 ```
 
 ## Recommended configuration
@@ -30,10 +29,10 @@ use: {
 
 ## Running and reviewing
 
-Run the suite-specific PowerShell runner. Then open its report:
+Run the suite with `scripts/run-e2e.ps1`. Then open its report:
 
 ```powershell
-npx playwright show-report artifacts/rahul-shetty/report
+npx playwright show-report artifacts/<app>/report
 ```
 
 Screenshots are stored under the matching `test-results` directory. A report

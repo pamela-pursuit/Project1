@@ -6,16 +6,14 @@ Group page objects by application:
 
 ```text
 pages/
-├── rahul-shetty/
-└── demo-web-shop/
+└── <app>/          # for example pages/my-app/login.page.ts
 ```
 
 Keep tests in matching folders:
 
 ```text
 tests/
-├── rahul-shetty/
-└── demo-web-shop/
+└── <app>/          # for example tests/my-app/login.spec.ts
 ```
 
 ## Responsibilities
