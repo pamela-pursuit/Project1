@@ -1,6 +1,6 @@
 ---
 name: e2e-agent
-description: "Autonomous URL-driven Playwright TypeScript E2E agent. Use when the user supplies an application URL (or BASE_URL) and wants it explored, an Excel scenario catalogue produced, POM-based Playwright tests built, run on Chromium/Firefox/WebKit, failures diagnosed and fixed, and a validation report delivered. Invoke as /e2e-agent <url> [flow] [--app <slug>]."
+description: "Autonomous URL-driven Playwright TypeScript E2E agent. Use when the user wants an application tested end to end: it asks for the URL, discovers the login/registration forms, asks for account details through an Excel or JSON file, then builds an Excel scenario catalogue, POM-based Playwright tests, runs them on Chromium/Firefox/WebKit, fixes failures, and reports. Invoke as /e2e-agent [url] [flow] [--app <slug>]."
 ---
 
 # URL-driven E2E Automation Agent (orchestrator)
@@ -14,28 +14,104 @@ Shared conventions live in `.claude/skills/qa-playwright/` (test design,
 POM, locators, credentials, reporting). The scenario JSON contract is in
 [scenario-schema.md](./scenario-schema.md).
 
-## Inputs
+## Phase 0: Intake (always first, one step at a time)
 
-- **URL:** from the user's message, otherwise `BASE_URL`. If neither is
-  present, ask for one and stop.
-- **Flow:** the business flow in scope, or "discover all" (prioritize
-  core and revenue flows).
-- **App slug:** a kebab-case name derived from the host (for example
-  `demowebshop.tricentis.com` becomes `demo-web-shop`), unless supplied. Reuse
-  an existing `pages/<slug>/` when it matches the same app.
-- **Credentials:** come from the user's credential file (JSON or Excel), as
-  described in `.claude/skills/qa-playwright/credentials.md`. Run
-  `node scripts/credentials.mjs check --app <app>` to see which roles and
-  fields exist (values are masked). **Never read, print, or copy the file**,
-  and never ask for values in chat. If the app or a needed role or field is
-  missing, tell the user exactly which entry to add, for example
-  "add role `newUser` with `email`, `password` under `my-app`", and point
-  them to the templates in `templates/`.
+### Step 1: Ask for the URL
+If the user's message contains no URL, ask, then **end your turn and wait**:
+
+> Which application URL should I test? You can also name the flows to focus
+> on (for example "login, registration, checkout"). Otherwise I'll discover
+> the main flows myself.
+
+If `BASE_URL` is set, offer it as the default in the question rather than
+using it silently. Validate the reply (an absolute http or https URL). If it's
+invalid, ask again. Derive the **app slug** from the host
+(`shop.example.com` becomes `shop-example`) unless the user gave `--app`.
+Reuse an existing `pages/<slug>/` or `test-plans/<slug>/` for the same app.
+
+### Step 2: Discover the account forms
+Run the discovery script yourself (it's fast and read-only):
+
+```
+node scripts/explore-app.mjs --url <url> --app <app> --max-pages 12
+```
+
+Stop and report any blocker (exit code 2). From
+`artifacts/<app>/discovery/discovery.json`, find:
+- the **login form**: its fields, usually email or username plus password
+- the **registration form**: its fields and which are required, plus radio
+  or select options such as gender or country
+- other account types the app shows (admin, vendor, and so on)
+
+Map the form fields to credential fields in camelCase (`First name` becomes
+`firstName`). Leave out confirm-password (it reuses `password`), CAPTCHA,
+newsletter, and terms checkboxes. These belong to the test, not the account.
+
+If no login or registration exists, say so, ask whether any part of the app
+needs an account (for example SSO or a separate admin URL), and skip to
+Phase 1 if not.
+
+### Step 3: Ask which accounts and which format
+Use **AskUserQuestion** with two questions:
+
+1. *"Which account details will you provide for <host>?"* (multiSelect).
+   Offer "Existing login account" plus, only when observed, "New registration
+   details", "Admin account", and so on. Explain that registration tests
+   create real accounts on the site. Selecting that option is the user's
+   confirmation for it.
+2. *"Which file do you want to fill in?"*
+   - Excel (Recommended): `credentials/credentials.xlsx`
+   - JSON: `credentials/credentials.json`
+
+If a credential file already exists (`check` shows the source), it is
+extended in its existing format. Say so instead of asking question 2. If
+the user prefers a file outside this OneDrive-synced folder, they set
+`CREDENTIALS_FILE` before launching Claude Code, and init and check use it.
+
+### Step 4: Generate the file for the user
+```
+node scripts/credentials.mjs init --app <app> --format <xlsx|json> \
+  --role existingUser:email,password \
+  --role newUser:firstName,lastName,gender,email,password
+```
+
+`init` creates or extends the file with blank values (highlighted in
+Excel), a Notes column with what each row is for, and the field names. It
+never changes values the user already entered.
+
+Then tell the user:
+- the file path, as a clickable link
+- a small table of the rows and fields to fill, including allowed options
+  observed on the form (for example `gender: Male / Female`)
+- the tip to use `{timestamp}` in the registration email for uniqueness
+  (`yourname+{timestamp}@yourdomain.com`)
+- "Fill it in, save and close the file, then reply **done**."
+
+**End your turn and wait.** Never ask for values in chat. If the user pastes
+a password into chat anyway, don't repeat it or write it anywhere. Ask them
+to put it in the file instead, and suggest changing that password.
+
+### Step 5: Verify
+On "done", run:
+
+```
+node scripts/credentials.mjs check --app <app> --require existingUser:email,password --require newUser:...
+```
+
+The output is masked. If anything is MISSING, list the exact role and field
+and wait again. If the file is still open in Excel and init or check fails,
+ask the user to close it. **Never read, print, or copy the credentials file
+yourself.**
+
+Record the intake in `test-plans/<app>/intake.md`: URL, slug, flows,
+account roles with their field names, the credential file location, and the
+date. Record no values.
 
 ## Hand-off files (the contract between agents)
 
 | File | Owner |
 | --- | --- |
+| `test-plans/<app>/intake.md` | orchestrator (Phase 0) |
 | `test-plans/<app>/discovery.md` | application-explorer |
 | `test-plans/<app>/requirements.md` | requirement-analyst |
 | `test-plans/<app>/scenarios.json` | scenario-designer (status fields: implementer, excel-test-analyst) |
@@ -45,19 +121,20 @@ POM, locators, credentials, reporting). The scenario JSON contract is in
 | `artifacts/<app>/` (git-ignored) | explorer, executor |
 | `test-plans/<app>/delivery-report.md` | delivery-reporter |
 
-Pass each subagent the app slug, URL, flow, credential roles needed, and
-the paths it needs. Brief it fully, because the brief is all the context it
-gets.
+Pass each subagent the app slug, URL, flows, the credential roles and
+fields from intake.md, and the paths it needs. Brief it fully, because the
+brief is all the context it gets.
 
 ## Workflow and gates
 
-### Phase 1: Input and discovery
+### Phase 1: Discovery and requirements
 1. Inspect the repository (`git status`, existing `pages/`, `tests/`,
    `test-plans/`).
-2. **application-explorer:** validates and crawls the URL.
+2. **application-explorer:** builds on the Phase 0 discovery. It probes
+   flow behavior, including signed-in pages using the verified roles, and
+   writes discovery.md.
    **Gate:** stop and report to the user if the URL is unreachable, has a
-   certificate error, redirects to an unexpected host, or sits behind
-   authentication with no matching role in the credential file. Do not fabricate
+   certificate error, or redirects to an unexpected host. Do not fabricate
    selectors or results.
 3. **requirement-analyst:** writes requirements.md.
    **Gate:** if it returns **Blocking** questions, ask the user (one batched
@@ -88,6 +165,8 @@ gets.
       cause is classified as environment, auth, or application defect, stop
       iterating. Mark the scenario `Blocked` (or keep it `Failed` with a
       Defect risk entry) and move on.
+    - If a run fails because an account is wrong (for example login
+      rejected), ask the user to correct that role in the file. Do not guess.
     - Independent failures may be investigated by parallel
       failure-investigator calls.
 
@@ -96,8 +175,8 @@ gets.
     implementer and executor, then re-review.
 12. **delivery-reporter:** writes delivery-report.md.
 13. Commit and push per `.claude/CLAUDE.md`. Source and test-plans only;
-    never secrets or `artifacts/`. Skip the push when the review verdict is
-    Not ready, and tell the user.
+    never secrets, the credentials file, or `artifacts/`. Skip the push
+    when the review verdict is Not ready, and tell the user.
 14. Reply to the user with the 15-section summary from delivery-report.md
     (condensed), plus links to the workbook and report.
 
@@ -108,20 +187,16 @@ or emails, create uncontrolled accounts, bypass authentication, request or
 print secrets, commit credentials, weaken assertions to get a pass, mark
 anything passed without run output, or call something an application defect
 without evidence and a confirmed requirement. **Ask the user before any
-irreversible or externally visible action**, including registering accounts
-on a third-party site.
+irreversible or externally visible action.** Registration runs only when
+the user selected "New registration details" in Phase 0.
 
 ## Credentialed runs
 
 Tests load accounts from the credential file through
-`lib/credentials-store.cjs`, so the agent runs credentialed suites
-without prompts. Before Phase 3 and before every run, verify the roles the
-suite needs with `node scripts/credentials.mjs check --app <app> --require <role>:<field>,...` and stop with a precise request to the
-user if anything is missing.
-
-For a file outside the repository (recommended, because this repository is
-synced by OneDrive), the user sets `CREDENTIALS_FILE` before launching
-Claude Code, or passes it to the runner:
+`lib/credentials-store.cjs`, so the agent runs credentialed suites without
+prompts. Re-run the Phase 0 Step 5 check before Phase 3 and before every
+run. For a file outside the repository, the user sets `CREDENTIALS_FILE`
+before launching Claude Code, or passes it to the runner:
 
 ```powershell
 .\scripts\run-e2e.ps1 -App <app> -BaseUrl <url> -AccountsFile D:\secure\credentials.xlsx

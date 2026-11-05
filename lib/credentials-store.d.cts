@@ -7,6 +7,11 @@ export interface CredentialStore {
   apps: Record<string, Record<string, Account>>;
 }
 
+export const DEFAULT_FILES: string[];
+
+/** Where credentials are read from; null when no source exists. */
+export function resolveSource(): { kind: 'env' | 'file'; file?: string; label: string } | null;
+
 export function loadCredentialStore(options?: { reload?: boolean }): Promise<CredentialStore>;
 
 /**

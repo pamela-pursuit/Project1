@@ -92,6 +92,15 @@ async function inspectPage(page) {
       name: el.getAttribute('name') ?? '',
       id: el.id ?? '',
       required: el.required || el.getAttribute('aria-required') === 'true',
+      // Framework validation hints (jQuery unobtrusive, Angular, asterisks next to the field).
+      requiredHint:
+        el.required ||
+        el.getAttribute('aria-required') === 'true' ||
+        el.hasAttribute('data-val-required') ||
+        el.hasAttribute('ng-required') ||
+        /\*/.test(el.parentElement?.textContent ?? ''),
+      checked: el.type === 'radio' || el.type === 'checkbox' ? el.checked : undefined,
+      value: el.type === 'radio' || el.type === 'checkbox' ? el.value : undefined,
       minLength: el.getAttribute('minlength'),
       maxLength: el.getAttribute('maxlength'),
       min: el.getAttribute('min'),
@@ -271,7 +280,6 @@ async function main() {
   }
 
   const ok = result.pages.filter((p) => !p.error);
-  const allFields = ok.flatMap((p) => [...(p.forms ?? []).flatMap((f) => f.fields), ...(p.orphanFields ?? [])]);
   const allLinks = ok.flatMap((p) => p.links ?? []);
   result.signals = {
     pagesVisited: result.pages.length,

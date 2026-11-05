@@ -30,6 +30,16 @@
 - README, guides, and `.env.example` now describe the agent workflow instead
   of individual suites.
 
+### Added (intake)
+
+- `/e2e-agent` Phase 0 intake: it asks for the URL, discovers the login and
+  registration fields, asks which accounts and which format (Excel or JSON),
+  generates the credential file for the user to fill in, and verifies it.
+- `scripts/credentials.mjs init`: creates or extends the credential file
+  with blank, highlighted fields and per-role notes, never changing
+  existing values.
+- Discovery records required-field hints and radio/checkbox values.
+
 ### Changed (structure)
 
 - Moved the credential loader to `lib/` and the credential templates to

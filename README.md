@@ -14,8 +14,35 @@ npx playwright install chromium firefox webkit
 
 ## Start a new application
 
+In Claude Code, type:
+
 ```text
-/e2e-agent https://example.com [flow to focus on] [--app my-app]
+/e2e-agent
+```
+
+The agent then walks you through the inputs:
+
+1. **URL.** It asks which application to test. You can also name flows,
+   such as "login, registration, checkout".
+2. **Account forms.** It opens the site and finds the login and registration
+   forms and the fields they need.
+3. **Accounts and format.** It asks which account details you'll provide
+   (existing login, new registration, admin, and so on) and whether you want
+   an **Excel** or **JSON** file.
+4. **Credential file.** It creates `credentials/credentials.xlsx` (or
+   `.json`) with exactly those fields, left blank and highlighted, and a note
+   on each row. You fill it in, save, and reply **done**. Passwords are never
+   typed into chat.
+5. **Check.** It verifies the file (values masked), tells you about any blank
+   cells, and then starts exploring, designing scenarios, and testing.
+
+Shortcut: `/e2e-agent https://example.com login, registration --app my-app`
+skips the URL question.
+
+You can also prepare the credential file yourself:
+
+```powershell
+node scripts/credentials.mjs init --app my-app --format xlsx --role existingUser:email,password --role newUser:firstName,lastName,email,password
 ```
 
 ## Project structure
