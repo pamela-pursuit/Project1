@@ -14,7 +14,7 @@ and rebuild.
 
 ```
 node scripts/workbook.mjs validate --app <app>   # schema + catalogue <-> test-title consistency
-node scripts/workbook.mjs sync --app <app>       # merge artifacts/<app>/results.json into executions
+node scripts/workbook.mjs sync --app <app>       # merge the latest run (artifacts/<app>/latest.json) into executions
 node scripts/workbook.mjs build --app <app>      # write test-plans/<app>/<app>-e2e-scenarios.xlsx
 ```
 

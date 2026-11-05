@@ -14,7 +14,8 @@ object, `scenarios.json` entry, and `discovery.md`.
 
 ## Method (for each failure)
 
-1. Read the error and `error-context.md` (the ARIA snapshot at failure), and
+1. Start from the run's `summary.md` (`artifacts/<app>/runs/<runId>/`; the newest is in
+   `artifacts/<app>/latest.json`). Read the error and `error-context.md` (the ARIA snapshot at failure), and
    view the screenshot with Read.
 2. If needed, open the trace summary:
    `npx playwright show-trace --help` describes the options. For quick

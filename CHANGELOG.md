@@ -30,6 +30,18 @@
 - README, guides, and `.env.example` now describe the agent workflow instead
   of individual suites.
 
+### Added (artifacts)
+
+- Each test run is saved in its own folder,
+  `artifacts/<app>/runs/<timestamp>/`, holding `summary.md`, readable
+  screenshots per browser (`screenshots/<browser>/<ID>_<title>_<status>_<n>.png`),
+  the HTML report, raw `test-results/`, and `results.json`.
+  `artifacts/<app>/latest.json` points to the newest run, and older runs
+  beyond `E2E_KEEP_RUNS` (default 20) are pruned (`lib/artifact-reporter.ts`).
+- Traces are kept on every failure (`retain-on-failure`).
+- The workbook's Execution Results sheet links each result to its screenshot
+  and run summary.
+
 ### Added (intake)
 
 - `/e2e-agent` Phase 0 intake: it asks for the URL, discovers the login and

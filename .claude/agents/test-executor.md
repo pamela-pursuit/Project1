@@ -12,7 +12,7 @@ job.
 ## Environment
 
 Every run sets `TEST_SUITE=<app>` and `BASE_URL=<url>` so artifacts land in
-`artifacts/<app>/` and `results.json` is written there. Tests load
+a new run folder `artifacts/<app>/runs/<runId>/` (its path is in `artifacts/<app>/latest.json`). Tests load
 accounts from the user's credential file (`credentials/credentials.json` or
 `.xlsx`, or `CREDENTIALS_FILE`). Before a credentialed run, verify the
 needed roles with `node scripts/credentials.mjs check --app <app> --require <role>:<field>,...`.
@@ -31,7 +31,7 @@ $env:TEST_SUITE='<app>'; $env:BASE_URL='<url>'; npx playwright test <path> --pro
 2. **Targeted:** the specific spec or `--grep "\[ID\]"` on chromium.
 3. **Per browser:** `--project=chromium`, then `--project=firefox`, then
    `--project=webkit` on the affected path.
-4. **Full matrix in one invocation**, so the merged `results.json` covers all
+4. **Full matrix in one invocation**, so that run's `results.json` covers all
    three: `npx playwright test <path> --project=chromium --project=firefox --project=webkit`
 5. `node scripts/workbook.mjs sync --app <app>` then `build --app <app>`.
 
@@ -42,7 +42,8 @@ fails with a missing-executable error.
 
 - the test title and scenario ID, browser, and the first lines of the
   assertion or error
-- `artifacts/<app>/test-results/<test-dir>/`: screenshot path (look at it
+- the run's `summary.md` (per-test table) and `screenshots/<browser>/` (readable
+  copies), plus `test-results/<test-dir>/`: screenshot path (look at it
   with Read), `error-context.md` if present, video, and trace
 - to get a trace for an intermittent failure, re-run that test with
   `--retries=1 --trace=on`, or use `--repeat-each=3` to test for flakiness

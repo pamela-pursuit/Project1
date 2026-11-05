@@ -66,7 +66,7 @@ test-data/<app>.data.ts # non-secret test data
 
 # Local only (git-ignored)
 credentials/            # your credentials.json or credentials.xlsx
-artifacts/<app>/        # HTML report, screenshots, traces, results.json
+artifacts/<app>/        # latest.json + runs/<timestamp>/ (summary.md, screenshots/<browser>/, report/, test-results/, results.json)
 ```
 
 ## URL-driven E2E automation agent (Claude Code)
@@ -82,7 +82,7 @@ subagents in `.claude/agents/`:
 | excel-test-analyst | Build and refresh the workbook | `test-plans/<app>/<app>-e2e-scenarios.xlsx` |
 | test-architect | POM, fixture, and data design | `test-plans/<app>/architecture.md` |
 | playwright-implementer | Page objects, fixtures, specs, fixes | `pages/`, `tests/`, `fixtures/`, `test-data/` |
-| test-executor | tsc, targeted, per-browser, and full-matrix runs; evidence | `artifacts/<app>/` |
+| test-executor | tsc, targeted, per-browser, and full-matrix runs; evidence | `artifacts/<app>/runs/<runId>/` |
 | failure-investigator | Root-cause classification from evidence | fix prescriptions |
 | quality-reviewer | Independent read-only review | Ready / Not ready verdict |
 | delivery-reporter | Final 15-section report | `test-plans/<app>/delivery-report.md` |
@@ -104,8 +104,8 @@ node scripts/workbook.mjs build --app my-app
 # Debug a single browser or scenario
 .\scripts\run-e2e.ps1 -App my-app -BaseUrl https://example.com -Browsers firefox -Grep "\[MYA-004\]" -Headed
 
-# Open the HTML report
-npx playwright show-report artifacts/my-app/report
+# Open the HTML report of a run (the runner prints the run folder)
+npx playwright show-report artifacts/my-app/runs/<runId>/report
 
 # Type-check
 npx tsc --noEmit

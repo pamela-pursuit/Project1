@@ -63,7 +63,8 @@ Do not use implementation-specific selectors when a user-facing accessible locat
 - Group page objects and tests by application under `pages/<app>/` and
   `tests/<app>/`.
 - Keep PowerShell runners under `scripts/`.
-- Store generated reports and screenshots under `artifacts/<suite>/`.
+- Generated reports, screenshots, traces, and videos are saved per run under
+  `artifacts/<app>/runs/<runId>/` (see reporting.md).
 - Reuse the focused guides above instead of duplicating these conventions.
 
 ## Deliverable format

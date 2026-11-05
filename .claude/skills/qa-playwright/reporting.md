@@ -2,40 +2,67 @@
 
 ## Output structure
 
-Store generated output by suite:
+Every run is saved in its own folder, so earlier runs are never overwritten:
 
 ```text
 artifacts/
 └── <app>/
-    ├── report/          # HTML report
-    ├── test-results/    # screenshots, videos, traces
-    └── results.json     # JSON results synced into the workbook
+    ├── latest.json                    # points to the newest run
+    ├── discovery/                     # explorer output (discovery.json, screens/, probes/)
+    └── runs/
+        └── <YYYY-MM-DD_HH-mm-ss>/     # one folder per run (UTC)
+            ├── summary.md             # pass/fail per browser + per-test table with screenshot links
+            ├── screenshots/
+            │   ├── chromium/<ID>_<title>_<status>_<n>.png
+            │   ├── firefox/...
+            │   └── webkit/...
+            ├── report/                # Playwright HTML report
+            ├── test-results/          # raw per-test output: screenshots, trace.zip and video.webm on failure
+            └── results.json           # JSON results, synced into the Excel workbook
 ```
 
-## Recommended configuration
+`playwright.config.ts` and `lib/artifact-reporter.ts` produce this layout
+automatically for every run, whether started by `scripts/run-e2e.ps1` or by
+`npx playwright test` with `TEST_SUITE=<app>`. Only the newest
+`E2E_KEEP_RUNS` runs per app are kept (default 20). `artifacts/` is
+git-ignored.
+
+## Configuration in use
 
 ```ts
-outputDir: `artifacts/${suiteName}/test-results`,
-reporter: [['list'], ['html', {
-  open: 'never',
-  outputFolder: `artifacts/${suiteName}/report`
-}]],
+outputDir: `${runDirectory}/test-results`,
+reporter: [
+  ['list'],
+  ['html', { open: 'never', outputFolder: `${runDirectory}/report` }],
+  ['json', { outputFile: `${runDirectory}/results.json` }],
+  ['./lib/artifact-reporter.ts', { runDirectory, suiteDirectory, runId }]
+],
 use: {
-  screenshot: 'on',
-  video: 'retain-on-failure',
-  trace: 'on-first-retry'
+  screenshot: 'on',              // every test, pass or fail
+  trace: 'retain-on-failure',
+  video: 'retain-on-failure'
 }
 ```
 
 ## Running and reviewing
 
-Run the suite with `scripts/run-e2e.ps1`. Then open its report:
+Run the suite with `scripts/run-e2e.ps1`. It prints the run folder at the
+end. Then:
 
 ```powershell
-npx playwright show-report artifacts/<app>/report
+# Newest run folder for an app
+(Get-Content artifacts/<app>/latest.json | ConvertFrom-Json).runDirectory
+
+# Open the HTML report of a run
+npx playwright show-report artifacts/<app>/runs/<runId>/report
+
+# Open a failure trace
+npx playwright show-trace artifacts/<app>/runs/<runId>/test-results/<test-dir>/trace.zip
 ```
 
-Screenshots are stored under the matching `test-results` directory. A report
-showing `0 passed` and `0 failed` usually means no tests were discovered or
-the report was opened before a valid run; rerun the suite and confirm the
-console lists the expected test count.
+The Excel workbook's **Execution Results** sheet links each result to its
+screenshot and its run's `summary.md`.
+
+A report showing `0 passed` and `0 failed` usually means no tests were
+discovered. Rerun the suite and confirm the console lists the expected test
+count.

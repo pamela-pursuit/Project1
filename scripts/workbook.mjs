@@ -3,7 +3,8 @@
 //
 // test-plans/<app>/scenarios.json is the source of truth. This script:
 //   validate  checks the catalogue against the schema and the test files
-//   sync      merges artifacts/<app>/results.json (Playwright JSON reporter)
+//   sync      merges the latest run's results.json (artifacts/<app>/latest.json ->
+//             runs/<runId>/results.json) with screenshot links
 //             into the catalogue's execution history and statuses
 //   build     writes test-plans/<app>/<app>-e2e-scenarios.xlsx
 //
@@ -133,8 +134,21 @@ function flattenSpecs(suite, out = []) {
 
 const STATUS_MAP = { expected: 'Passed', unexpected: 'Failed', flaky: 'Flaky', skipped: 'Skipped' };
 
+// Newest run: artifacts/<app>/latest.json -> runs/<runId>/results.json (legacy: artifacts/<app>/results.json).
+async function resolveResults(app) {
+  const pointer = path.join('artifacts', app, 'latest.json');
+  if (existsSync(pointer)) {
+    const { runDirectory } = JSON.parse(await readFile(pointer, 'utf8'));
+    const file = path.join(runDirectory, 'results.json');
+    if (existsSync(file)) return file;
+  }
+  return paths(app).results;
+}
+
+const toRepoPath = (p) => (p ? path.relative(process.cwd(), p).replaceAll('\\', '/') : '');
+
 async function sync(app, data) {
-  const file = paths(app).results;
+  const file = await resolveResults(app);
   if (!existsSync(file)) throw new Error(`Missing ${file}. Run tests with TEST_SUITE=${app} first.`);
   const report = JSON.parse(await readFile(file, 'utf8'));
   const runAt = report.stats?.startTime ?? new Date().toISOString();
@@ -157,7 +171,9 @@ async function sync(app, data) {
         durationMs: last?.duration ?? null,
         testTitle: spec.title,
         file: spec.file,
-        error: stripAnsi(last?.error?.message ?? '').split('\n').slice(0, 4).join(' ').slice(0, 600)
+        error: stripAnsi(last?.error?.message ?? '').split('\n').slice(0, 4).join(' ').slice(0, 600),
+        screenshot: toRepoPath((last?.attachments ?? []).filter((a) => a.contentType?.startsWith('image/') && a.path).at(-1)?.path),
+        runDirectory: toRepoPath(path.dirname(file))
       };
       if (id) rows.push(row);
       else untagged.push(row);
@@ -315,12 +331,27 @@ async function build(app, data) {
   for (let r = 2; r <= 4; r += 1) cov.getRow(r).getCell(AUTOMATION.length + 3).numFmt = '0%';
 
   const ex = wb.addWorksheet('Execution Results');
-  addTable(ex, ['Run At', 'Scenario ID', 'Browser', 'Status', 'Attempts', 'Duration (s)', 'Test Title', 'Spec File', 'Error'],
-    [...data.executions].reverse().map((e) => [
+  const executions = [...data.executions].reverse();
+  addTable(ex, ['Run At', 'Scenario ID', 'Browser', 'Status', 'Attempts', 'Duration (s)', 'Test Title', 'Spec File', 'Error', 'Screenshot', 'Run Folder'],
+    executions.map((e) => [
       e.runAt, e.scenarioId, e.browser, e.status, e.attempts, e.durationMs == null ? '' : Number((e.durationMs / 1000).toFixed(1)),
-      e.testTitle, e.file, e.error ?? ''
-    ]), [22, 12, 11, 10, 9, 11, 48, 30, 60]);
-  ex.eachRow((row, i) => { if (i > 1) tint(row.getCell(4)); });
+      e.testTitle, e.file, e.error ?? '', e.screenshot ?? '', e.runDirectory ?? ''
+    ]), [22, 12, 11, 10, 9, 11, 48, 30, 60, 22, 30]);
+  // Hyperlinks are relative to the workbook (test-plans/<app>/), so they open from any checkout.
+  const workbookDir = path.dirname(paths(app).workbook);
+  ex.eachRow((row, i) => {
+    if (i === 1) return;
+    tint(row.getCell(4));
+    const e = executions[i - 2];
+    if (e.screenshot) {
+      row.getCell(10).value = { text: 'Open screenshot', hyperlink: path.relative(workbookDir, e.screenshot).replaceAll('\\', '/') };
+      row.getCell(10).font = { color: { argb: 'FF0563C1' }, underline: true };
+    }
+    if (e.runDirectory) {
+      row.getCell(11).value = { text: e.runDirectory, hyperlink: path.relative(workbookDir, path.join(e.runDirectory, 'summary.md')).replaceAll('\\', '/') };
+      row.getCell(11).font = { color: { argb: 'FF0563C1' }, underline: true };
+    }
+  });
 
   const risk = wb.addWorksheet('Risks and Assumptions');
   addTable(risk, ['ID', 'Type', 'Description', 'Impact', 'Mitigation / Clarification Needed', 'Related Scenarios', 'Status'],
@@ -337,7 +368,7 @@ async function main() {
   let ok = true;
   if (command === 'validate' || command === 'all') ok = await validate(app, data);
   if (command === 'sync' || command === 'all') {
-    if (existsSync(paths(app).results) || command === 'sync') {
+    if (existsSync(await resolveResults(app)) || command === 'sync') {
       await sync(app, data);
       await saveCatalogue(app, data);
     }

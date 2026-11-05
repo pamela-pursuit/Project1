@@ -118,7 +118,7 @@ date. Record no values.
 | `test-plans/<app>/<app>-e2e-scenarios.xlsx` | excel-test-analyst (generated) |
 | `test-plans/<app>/architecture.md` | test-architect |
 | `pages/<app>/`, `tests/<app>/`, `fixtures/<app>.fixture.ts`, `test-data/<app>.data.ts` | playwright-implementer |
-| `artifacts/<app>/` (git-ignored) | explorer, executor |
+| `artifacts/<app>/discovery/`, `artifacts/<app>/runs/<runId>/` (git-ignored) | explorer, executor (via Playwright config) |
 | `test-plans/<app>/delivery-report.md` | delivery-reporter |
 
 Pass each subagent the app slug, URL, flows, the credential roles and

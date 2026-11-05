@@ -19,7 +19,7 @@ pages/<app>/<page>.page.ts         # one class per page/component; locators + ac
 tests/<app>/<area>.spec.ts         # business scenarios + assertions; titles start with [ID]
 fixtures/<app>.fixture.ts          # test.extend: page objects, accounts via credentials-store, data factories
 test-data/<app>.data.ts            # non-secret constants + unique-data generators
-artifacts/<app>/{report,test-results,results.json}   # generated, git-ignored (TEST_SUITE=<app>)
+artifacts/<app>/runs/<runId>/{summary.md,screenshots,report,test-results,results.json}   # generated per run, git-ignored
 ```
 
 - The base URL comes from `BASE_URL` (set by `scripts/run-e2e.ps1`).

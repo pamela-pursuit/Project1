@@ -36,7 +36,9 @@ $exitCode = 1
 try {
   # Step 0: Point the credential store at the requested file and verify it (masked output).
   if ($AccountsFile) { $env:CREDENTIALS_FILE = (Resolve-Path -LiteralPath $AccountsFile).Path }
-  node scripts/credentials.mjs check --app $App | Out-Host
+  # Shown only when a credential source exists; apps without login need none.
+  $credentialCheck = node scripts/credentials.mjs check --app $App 2>&1
+  if (-not ($credentialCheck -match '^No credentials source')) { $credentialCheck | Out-Host }
 
   # Step 1: Collect missing secrets without echoing them.
   foreach ($name in $SecretVars) {
@@ -56,6 +58,9 @@ try {
   # Step 2: Run the suite on every requested browser in one invocation.
   $env:BASE_URL = $BaseUrl
   $env:TEST_SUITE = $App
+  # One folder per run: artifacts/<App>/runs/<RunId>/ (UTC timestamp).
+  $env:E2E_RUN_ID = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd_HH-mm-ss')
+  $runDirectory = "artifacts/$App/runs/$($env:E2E_RUN_ID)"
   $arguments = @('playwright', 'test', $TestPath) + ($Browsers | ForEach-Object { "--project=$_" })
   if ($Grep) { $arguments += @('--grep', $Grep) }
   if ($Headed) { $arguments += '--headed' }
@@ -68,12 +73,16 @@ try {
     node scripts/workbook.mjs sync --app $App
     node scripts/workbook.mjs build --app $App
   }
-  Write-Host "Report: npx playwright show-report artifacts/$App/report"
+  Write-Host ""
+  Write-Host "Saved run:   $runDirectory"
+  Write-Host "  Summary:     $runDirectory/summary.md"
+  Write-Host "  Screenshots: $runDirectory/screenshots/<browser>/"
+  Write-Host "  Report:      npx playwright show-report $runDirectory/report"
 }
 finally {
-  # Step 4: Clear secrets this runner set, including on interruption.
+  # Step 4: Clear secrets and run settings this runner set, including on interruption.
   foreach ($name in $promptedVars) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
-  Remove-Item Env:BASE_URL, Env:TEST_SUITE -ErrorAction SilentlyContinue
+  Remove-Item Env:BASE_URL, Env:TEST_SUITE, Env:E2E_RUN_ID -ErrorAction SilentlyContinue
   $env:CREDENTIALS_FILE = $previousAccountsFile
 }
 exit $exitCode
