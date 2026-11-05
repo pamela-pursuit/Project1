@@ -10,3 +10,4 @@ credentials.json
 credentials.xlsx
 *.credentials.json
 *.credentials.xlsx
+*.pptx
