@@ -1,0 +1,86 @@
+import { chromiumOnly, expect, recordObservation, test } from '../../fixtures/demo-web-shop.fixture';
+import { INVALID, MESSAGES, unknownEmail, wrongLoginValue } from '../../test-data/demo-web-shop.data';
+
+// P9: account values must not reach report artifacts. Values are filled without step titles
+// (fillAccountValue); a trace would still record evaluate arguments and signed-in DOM snapshots,
+// so tracing is off for this file (trace is worker-scoped, so it cannot be set per describe).
+test.use({ trace: 'off' });
+
+test.describe('Authentication', () => {
+  test.describe('Existing account', () => {
+    test('[DWS-001] Registered customer signs in with valid credentials', async ({ signInAsExistingUser, header, existingUser, page }) => {
+      await test.step('Sign in as existingUser on /login', async () => {
+        await signInAsExistingUser();
+      });
+
+      await expect(page).toHaveURL(/\/$/);
+      expect(await header.accountLinkShows(existingUser.email), 'header account link shows the existingUser email').toBe(true);
+      await expect(header.logoutLink).toBeVisible();
+      await expect(header.loginLink).toHaveCount(0);
+      await expect(header.registerLink).toHaveCount(0);
+    });
+  });
+
+  test('[DWS-003] Unknown email is rejected', async ({ loginPage, header, page }) => {
+    await loginPage.open();
+    const outcome = await loginPage.signIn(unknownEmail(), wrongLoginValue());
+
+    expect(outcome).toBe('rejected');
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(loginPage.errorSummary).toContainText(MESSAGES.loginFailed);
+    await expect(loginPage.errorSummary).toContainText(MESSAGES.noCustomerAccount);
+    await expect(header.loginLink).toBeVisible();
+  });
+
+  test('[DWS-004] Login with both fields empty shows the server summary', async ({ loginPage, page }) => {
+    await loginPage.open();
+    await loginPage.submitEmpty();
+
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(loginPage.errorSummary).toContainText(MESSAGES.loginFailed);
+    await expect(loginPage.errorSummary).toContainText(MESSAGES.noCustomerAccount);
+    await expect(loginPage.emailFieldError).toHaveCount(0);
+  });
+
+  test('[DWS-005] Malformed email is flagged client-side', async ({ loginPage, page }) => {
+    await loginPage.open();
+    await loginPage.enterEmailAndBlur(INVALID.loginEmail);
+    await expect(loginPage.emailFieldError).toHaveText(MESSAGES.invalidEmailLogin);
+
+    // Client-side validation blocks the submit: no navigation, no server summary.
+    await loginPage.loginButton.click();
+    await expect(loginPage.emailFieldError).toHaveText(MESSAGES.invalidEmailLogin);
+    await expect(loginPage.errorSummary).toHaveCount(0);
+    await expect(page).toHaveURL(/\/login$/);
+  });
+
+  test('[DWS-006] Whitespace-only email does not sign the user in', async ({ loginPage, header, page }) => {
+    await loginPage.open();
+    const outcome = await loginPage.signIn(INVALID.whitespaceEmail, wrongLoginValue());
+
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(header.logoutLink).toHaveCount(0);
+    // R-17: record the message on the first run before it is asserted.
+    const summary = outcome === 'rejected' ? (await loginPage.errorSummary.innerText()).replace(/\s+/g, ' ').trim() : '(no summary)';
+    recordObservation('R-17', `outcome=${outcome}; message="${summary}"`);
+  });
+
+  // Lockout protection (R-04): one wrong-password attempt per run, never retried, Chromium only.
+  test.describe('Wrong password for the existing account', () => {
+    chromiumOnly('Chromium only (R-04): one wrong-password attempt per run against the shared account');
+    test.describe.configure({ retries: 0 });
+    test('[DWS-002] Known email with a wrong password is rejected', async ({ loginPage, header, existingUser, loginCircuitBreaker, page }) => {
+      // Do not add a further rejected attempt if existingUser was already rejected in this run.
+      loginCircuitBreaker.ensureClosed();
+      await loginPage.open();
+      const outcome = await loginPage.signIn(existingUser.email, wrongLoginValue());
+
+      expect(outcome).toBe('rejected');
+      await expect(page).toHaveURL(/\/login$/);
+      await expect(loginPage.errorSummary).toContainText(MESSAGES.loginFailed);
+      await expect(loginPage.errorSummary).toContainText(MESSAGES.credentialsIncorrect);
+      await expect(header.loginLink).toBeVisible();
+      await expect(header.registerLink).toBeVisible();
+    });
+  });
+});

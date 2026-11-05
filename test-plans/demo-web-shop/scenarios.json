@@ -1,0 +1,2692 @@
+{
+  "app": "demo-web-shop",
+  "baseUrl": "https://demowebshop.tricentis.com/",
+  "code": "DWS",
+  "scenarios": [
+    {
+      "id": "DWS-001",
+      "feature": "Authentication",
+      "journey": "Registered customer signs in with valid credentials",
+      "testType": "Authentication",
+      "priority": "High",
+      "preconditions": "Signed out; existingUser credentials available",
+      "testData": "credentials: existingUser (email, password)",
+      "steps": [
+        "Open /login",
+        "Fill \"Email:\" and \"Password:\" with existingUser values",
+        "Select \"Log in\""
+      ],
+      "expected": "URL is /. Header account link (.header-links .account) text equals the existingUser email; link \"Log out\" is visible; links \"Log in\" and \"Register\" are absent (count 0).",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopLoginPage",
+      "risk": "Login failure blocks every signed-in flow",
+      "requirementRef": "REQ-01",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/auth.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-002",
+      "feature": "Authentication",
+      "journey": "Known email with a wrong password is rejected",
+      "testType": "Negative",
+      "priority": "High",
+      "preconditions": "Signed out. Run once per full run (lockout unknown); retries disabled for this test",
+      "testData": "credentials: existingUser.email; wrongLoginValue (generated, not the real credential)",
+      "steps": [
+        "Open /login",
+        "Fill \"Email:\" with existingUser email and \"Password:\" with wrongLoginValue",
+        "Select \"Log in\""
+      ],
+      "expected": "URL stays /login. .validation-summary-errors shows \"Login was unsuccessful. Please correct the errors and try again.\" and \"The credentials provided are incorrect\". Header still shows \"Log in\" and \"Register\".",
+      "browsers": [
+        "chromium"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopLoginPage",
+      "risk": "Wrong credentials accepted would be a security defect; repeated attempts could lock the only account",
+      "requirementRef": "REQ-01",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/auth.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-003",
+      "feature": "Authentication",
+      "journey": "Unknown email is rejected",
+      "testType": "Negative",
+      "priority": "High",
+      "preconditions": "Signed out",
+      "testData": "unknownEmail (generated qa.unknown+{timestamp}@example.test); wrongLoginValue",
+      "steps": [
+        "Open /login",
+        "Fill \"Email:\" with unknownEmail and \"Password:\" with wrongLoginValue",
+        "Select \"Log in\""
+      ],
+      "expected": "URL stays /login. Summary shows \"Login was unsuccessful. Please correct the errors and try again.\" and \"No customer account found\". Header still shows \"Log in\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopLoginPage",
+      "risk": "Message reveals whether an email is registered (see Discrepancy R-14)",
+      "requirementRef": "REQ-01",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/auth.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-004",
+      "feature": "Authentication",
+      "journey": "Login submitted with both fields empty",
+      "testType": "Validation",
+      "priority": "Medium",
+      "preconditions": "Signed out",
+      "testData": "None",
+      "steps": [
+        "Open /login",
+        "Leave \"Email:\" and \"Password:\" empty",
+        "Select \"Log in\""
+      ],
+      "expected": "Server round trip; URL stays /login. Summary shows \"Login was unsuccessful. Please correct the errors and try again.\" and \"No customer account found\". No field-level message.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopLoginPage",
+      "risk": "Missing validation feedback confuses users",
+      "requirementRef": "REQ-01",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/auth.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-005",
+      "feature": "Authentication",
+      "journey": "Malformed email is flagged client-side",
+      "testType": "Validation",
+      "priority": "Medium",
+      "preconditions": "Signed out",
+      "testData": "malformedEmail = \"abc\"",
+      "steps": [
+        "Open /login",
+        "Fill \"Email:\" with \"abc\" and move focus away",
+        "Select \"Log in\""
+      ],
+      "expected": "Field message under Email: \"Please enter a valid email address.\" The message remains after submit, no validation summary appears, URL stays /login.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopLoginPage",
+      "risk": "Weak input validation",
+      "requirementRef": "REQ-01",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/auth.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-006",
+      "feature": "Authentication",
+      "journey": "Whitespace-only email is not accepted as a login",
+      "testType": "Edge Case",
+      "priority": "Low",
+      "preconditions": "Signed out",
+      "testData": "whitespaceEmail = \"   \"; wrongLoginValue",
+      "steps": [
+        "Open /login",
+        "Fill \"Email:\" with three spaces and \"Password:\" with wrongLoginValue",
+        "Select \"Log in\""
+      ],
+      "expected": "User stays signed out: URL remains /login and \"Log out\" is absent. The exact message is not observed (Ambiguity R-17); the first run records it before it is asserted.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopLoginPage",
+      "risk": "Whitespace handling unspecified",
+      "requirementRef": "REQ-01",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/auth.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-007",
+      "feature": "Session",
+      "journey": "Signed-in session survives a page reload",
+      "testType": "Session",
+      "priority": "High",
+      "preconditions": "Signed in as existingUser",
+      "testData": "credentials: existingUser (email, password)",
+      "steps": [
+        "Sign in",
+        "Reload /"
+      ],
+      "expected": "\"Log out\" link still visible and the header account link still shows the existingUser email.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopHeader",
+      "risk": "Lost session forces re-login and abandons carts",
+      "requirementRef": "REQ-02",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/session.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-008",
+      "feature": "Session",
+      "journey": "Logout restores the guest header",
+      "testType": "Authentication",
+      "priority": "High",
+      "preconditions": "Signed in as existingUser",
+      "testData": "credentials: existingUser (email, password)",
+      "steps": [
+        "Sign in",
+        "Select \"Log out\""
+      ],
+      "expected": "URL is /. Header shows \"Register\", \"Log in\", \"Shopping cart (0)\" and \"Wishlist (0)\"; \"Log out\" and the account link are absent.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopHeader",
+      "risk": "Session not terminated on shared devices",
+      "requirementRef": "REQ-02",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/session.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-009",
+      "feature": "Session",
+      "journey": "Back navigation after logout shows no signed-in content",
+      "testType": "Session",
+      "priority": "High",
+      "preconditions": "Signed in as existingUser; visited / and /cart",
+      "testData": "credentials: existingUser (email, password)",
+      "steps": [
+        "Sign in",
+        "Open /cart",
+        "Select \"Log out\"",
+        "Go back in history up to three times"
+      ],
+      "expected": "On every page reached by Back, \"Log out\" and the header account link are absent.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopHeader",
+      "risk": "Cached account data exposed after logout",
+      "requirementRef": "REQ-02",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/session.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-010",
+      "feature": "Session",
+      "journey": "Session expiry simulated by clearing cookies",
+      "testType": "Session",
+      "priority": "Medium",
+      "preconditions": "Signed in as existingUser",
+      "testData": "credentials: existingUser (email, password)",
+      "steps": [
+        "Sign in",
+        "Clear the browser context cookies",
+        "Open /customer/info"
+      ],
+      "expected": "Redirect to /login?ReturnUrl=%2fcustomer%2finfo; header shows \"Log in\". (Server-side timeout duration is not observed; see R-18.)",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopHeader",
+      "risk": "Expired sessions must not keep account access",
+      "requirementRef": "REQ-02",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/session.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-011",
+      "feature": "Session",
+      "journey": "Login page opened while already signed in",
+      "testType": "Edge Case",
+      "priority": "Low",
+      "preconditions": "Signed in as existingUser",
+      "testData": "credentials: existingUser (email, password)",
+      "steps": [
+        "Sign in",
+        "Open /login"
+      ],
+      "expected": "Observed behaviour: the login page renders (h1 \"Welcome, Please Sign In!\") with no redirect, and the header still shows \"Log out\". Whether this is intended is unspecified (R-19).",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopLoginPage",
+      "risk": "Confusing UX; low impact",
+      "requirementRef": "REQ-02",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/session.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-012",
+      "feature": "Authorization",
+      "journey": "Guest is redirected from protected account pages",
+      "testType": "Authorization",
+      "priority": "High",
+      "preconditions": "Signed out (fresh context)",
+      "testData": "Pages: info, orders, addresses, changepassword, downloadableproducts, rewardpoints",
+      "steps": [
+        "For each page, open /customer/<page> as a guest"
+      ],
+      "expected": "Each lands on /login?ReturnUrl=%2fcustomer%2f<page> with the login form (\"Log in\" button) visible.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopLoginPage",
+      "risk": "Account data exposed to anonymous users",
+      "requirementRef": "REQ-03",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/authorization.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-013",
+      "feature": "Authorization",
+      "journey": "Sign-in from a ReturnUrl redirect returns to the requested page",
+      "testType": "Authorization",
+      "priority": "High",
+      "preconditions": "Signed out",
+      "testData": "credentials: existingUser (email, password)",
+      "steps": [
+        "Open /customer/info as a guest (redirect to /login?ReturnUrl=%2fcustomer%2finfo)",
+        "Sign in with existingUser"
+      ],
+      "expected": "Assumed (not observed, R-20): URL becomes /customer/info with h1 \"My account - Customer info\". Assert only after the first run confirms; otherwise record the actual landing page as a gap.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopLoginPage",
+      "risk": "Users lose their place after sign-in",
+      "requirementRef": "REQ-03",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/authorization.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-014",
+      "feature": "Authorization",
+      "journey": "Back-in-stock subscriptions page is reachable by a guest",
+      "testType": "Authorization",
+      "priority": "Low",
+      "preconditions": "Signed out",
+      "testData": "None",
+      "steps": [
+        "Open /customer/backinstocksubscriptions as a guest"
+      ],
+      "expected": "Observed behaviour: no redirect; h1 \"My account - Back in stock subscriptions\" and \"You are not currently subscribed to any Back In Stock notification lists\". Flagged as a possible defect (R-21).",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopAccountPage",
+      "risk": "Inconsistent protection of /customer/* routes",
+      "requirementRef": "REQ-03",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/authorization.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-015",
+      "feature": "Checkout",
+      "journey": "Guest opens checkout directly with an empty cart",
+      "testType": "Navigation",
+      "priority": "Medium",
+      "preconditions": "Signed out; empty guest cart",
+      "testData": "None",
+      "steps": [
+        "Open /onepagecheckout directly"
+      ],
+      "expected": "Redirect to /cart showing \"Your Shopping Cart is empty!\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCheckoutPage",
+      "risk": "Empty orders could be started",
+      "requirementRef": "REQ-11",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/checkout-guest.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-016",
+      "feature": "Registration",
+      "journey": "Empty registration form shows required messages",
+      "testType": "Validation",
+      "priority": "Medium",
+      "preconditions": "Signed out",
+      "testData": "None",
+      "steps": [
+        "Open /register",
+        "Select \"Register\" without filling any field"
+      ],
+      "expected": "Stays on /register, no summary. Messages: \"First name is required.\", \"Last name is required.\", \"Email is required.\", \"Password is required.\" (Password) and \"Password is required.\" (Confirm password).",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopRegisterPage",
+      "risk": "Incomplete accounts",
+      "requirementRef": "REQ-04",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/register.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-017",
+      "feature": "Registration",
+      "journey": "Invalid email format is rejected",
+      "testType": "Validation",
+      "priority": "Medium",
+      "preconditions": "Signed out",
+      "testData": "invalidEmail = \"not-an-email\"",
+      "steps": [
+        "Open /register",
+        "Fill \"Email:\" (exact) with \"not-an-email\" and move focus away"
+      ],
+      "expected": "Email field message \"Wrong email\"; URL stays /register; header still guest.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopRegisterPage",
+      "risk": "Unreachable customer emails",
+      "requirementRef": "REQ-04",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/register.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-018",
+      "feature": "Registration",
+      "journey": "Password length boundary (5 vs 6 characters)",
+      "testType": "Boundary",
+      "priority": "Medium",
+      "preconditions": "Signed out",
+      "testData": "shortValue = \"abc\" (observed) and \"abcde\"; minValue = \"abcdef\"",
+      "steps": [
+        "Open /register",
+        "Fill \"Password:\" (exact) with \"abc\", move focus away",
+        "Repeat with \"abcde\"",
+        "Repeat with \"abcdef\""
+      ],
+      "expected": "\"abc\" and \"abcde\" show \"The password should have at least 6 characters.\" (data-val minimum 6, observed); \"abcdef\" shows no length message. Form is never submitted with valid data.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopRegisterPage",
+      "risk": "Weak passwords accepted",
+      "requirementRef": "REQ-04",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/register.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-019",
+      "feature": "Registration",
+      "journey": "Confirm password mismatch is rejected",
+      "testType": "Validation",
+      "priority": "Medium",
+      "preconditions": "Signed out",
+      "testData": "Password \"abcdef\", confirm \"abcdeg\"",
+      "steps": [
+        "Open /register",
+        "Fill \"Password:\" (exact) with \"abcdef\" and \"Confirm password:\" with \"abcdeg\"",
+        "Move focus away"
+      ],
+      "expected": "Confirm password message \"The password and confirmation password do not match.\"; no length message.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopRegisterPage",
+      "risk": "Users locked out by a typo",
+      "requirementRef": "REQ-04",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/register.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-020",
+      "feature": "Registration",
+      "journey": "Duplicate email registration is rejected (no account created)",
+      "testType": "Negative",
+      "priority": "Medium",
+      "preconditions": "Signed out; existingUser email already registered",
+      "testData": "credentials: existingUser.email; registerDummyPw (generated); names \"QA\" / \"Automation\"",
+      "steps": [
+        "Open /register",
+        "Fill First name \"QA\", Last name \"Automation\", Email = existingUser email, Password and Confirm = registerDummyPw",
+        "Select \"Register\""
+      ],
+      "expected": "Summary \"The specified email already exists\"; URL stays /register; header still shows \"Log in\" and \"Register\". No account is created.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopRegisterPage",
+      "risk": "Duplicate accounts corrupt customer data",
+      "requirementRef": "REQ-04",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/register.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-021",
+      "feature": "Search",
+      "journey": "Header search returns matching products",
+      "testType": "Positive",
+      "priority": "Medium",
+      "preconditions": "Any state",
+      "testData": "searchTerm = \"computer\"",
+      "steps": [
+        "Fill #small-searchterms with \"computer\"",
+        "Select \"Search\" in the header"
+      ],
+      "expected": "URL /search?q=computer, h1 \"Search\". Results include \"Build your own computer\" and \"Simple Computer\"; result count > 0 (exact count not asserted, shared catalogue).",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopSearchPage",
+      "risk": "Customers cannot find products",
+      "requirementRef": "REQ-05",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/search.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-022",
+      "feature": "Search",
+      "journey": "Search with no matches shows the empty message",
+      "testType": "Negative",
+      "priority": "Medium",
+      "preconditions": "Any state",
+      "testData": "noMatchTerm = \"zzqxnotfound\"",
+      "steps": [
+        "Search \"zzqxnotfound\" from the header"
+      ],
+      "expected": "URL /search?q=zzqxnotfound; 0 product items; .search-results shows \"No products were found that matched your criteria.\"",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopSearchPage",
+      "risk": "Blank page confuses users",
+      "requirementRef": "REQ-05",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/search.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-023",
+      "feature": "Search",
+      "journey": "Search term below the minimum length",
+      "testType": "Boundary",
+      "priority": "Medium",
+      "preconditions": "Any state",
+      "testData": "\"ab\" (header), \"a\" (direct URL /search?q=a)",
+      "steps": [
+        "Search \"ab\" from the header",
+        "Open /search?q=a directly"
+      ],
+      "expected": "Both show \"Search term minimum length is 3 characters\"; no products listed.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopSearchPage",
+      "risk": "Expensive or meaningless queries",
+      "requirementRef": "REQ-05",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/search.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-024",
+      "feature": "Search",
+      "journey": "Empty or default search term triggers an alert",
+      "testType": "Validation",
+      "priority": "Medium",
+      "preconditions": "On / ; dialog handler registered",
+      "testData": "Empty string; untouched default \"Search store\"",
+      "steps": [
+        "Clear #small-searchterms and select header \"Search\"",
+        "Reload, leave the default \"Search store\" value and select \"Search\""
+      ],
+      "expected": "Each time a native alert with message \"Please enter some search keyword\" appears and is accepted; URL stays /.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopSearchPage",
+      "risk": "Unhandled dialog hangs the UI",
+      "requirementRef": "REQ-05",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/search.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-025",
+      "feature": "Search",
+      "journey": "Header search autocomplete suggests products",
+      "testType": "Positive",
+      "priority": "Low",
+      "preconditions": "On /",
+      "testData": "prefix = \"comp\"",
+      "steps": [
+        "Type \"comp\" into #small-searchterms",
+        "Wait for the suggestion list"
+      ],
+      "expected": "Suggestions include \"Build your own computer\" and \"Computing and Internet\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopSearchPage",
+      "risk": "Slower product discovery",
+      "requirementRef": "REQ-05",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/search.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-026",
+      "feature": "Search",
+      "journey": "Whitespace-only search term",
+      "testType": "Edge Case",
+      "priority": "Low",
+      "preconditions": "On /; dialog handler registered",
+      "testData": "whitespaceTerm = \"   \"",
+      "steps": [
+        "Fill #small-searchterms with three spaces",
+        "Select header \"Search\""
+      ],
+      "expected": "Not observed (Ambiguity R-22). The test records whether an alert or the minimum-length message appears, and asserts only that no product results are listed.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopSearchPage",
+      "risk": "Whitespace handling unspecified",
+      "requirementRef": "REQ-05",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/search.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-027",
+      "feature": "Category listing",
+      "journey": "Open Books from the top menu and sort by Price: Low to High",
+      "testType": "Positive",
+      "priority": "Medium",
+      "preconditions": "On /",
+      "testData": "None",
+      "steps": [
+        "Select \"Books\" in .top-menu",
+        "Select \"Price: Low to High\" in #products-orderby"
+      ],
+      "expected": "After the menu click: URL /books, title \"Demo Web Shop. Books\", products listed. After sorting: URL contains orderby=10; listed prices are in non-decreasing order.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCategoryPage",
+      "risk": "Misleading product ordering",
+      "requirementRef": "REQ-06",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/listing.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-028",
+      "feature": "Category listing",
+      "journey": "Sort by Name: Z to A",
+      "testType": "Positive",
+      "priority": "Medium",
+      "preconditions": "On /books",
+      "testData": "None",
+      "steps": [
+        "Select \"Name: Z to A\" in #products-orderby"
+      ],
+      "expected": "URL contains orderby=6; product names are in descending alphabetical order (observed first \"Science\", last \"Computing and Internet\").",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCategoryPage",
+      "risk": "Misleading product ordering",
+      "requirementRef": "REQ-06",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/listing.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-029",
+      "feature": "Category listing",
+      "journey": "Page size 4 with pagination",
+      "testType": "Positive",
+      "priority": "Medium",
+      "preconditions": "On /books",
+      "testData": "None",
+      "steps": [
+        "Select 4 in #products-pagesize",
+        "Select \"Next\" in .pager"
+      ],
+      "expected": "Page 1 lists 4 items with pager links \"2\" and \"Next\"; after Next the URL contains pagenumber=2, at least one item is listed and the pager shows \"Previous\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCategoryPage",
+      "risk": "Products unreachable beyond page 1",
+      "requirementRef": "REQ-06",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/listing.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-030",
+      "feature": "Category listing",
+      "journey": "Switch to List view",
+      "testType": "Positive",
+      "priority": "Low",
+      "preconditions": "On /books",
+      "testData": "None",
+      "steps": [
+        "Select \"List\" in #products-viewmode"
+      ],
+      "expected": "URL contains viewmode=list; .product-list is present and .product-grid is absent.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCategoryPage",
+      "risk": "Cosmetic",
+      "requirementRef": "REQ-06",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/listing.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-031",
+      "feature": "Category listing",
+      "journey": "Apply and remove the \"Under 25.00\" price filter",
+      "testType": "Positive",
+      "priority": "Medium",
+      "preconditions": "On /books",
+      "testData": "None",
+      "steps": [
+        "Select link \"Under 25.00\"",
+        "Select link \"Remove Filter\""
+      ],
+      "expected": "With the filter: URL contains price=-25, every listed price is below 25.00, \"Science\" is absent, and \"Remove Filter\" is visible. After removing: the price parameter is gone and \"Science\" is listed again.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCategoryPage",
+      "risk": "Wrong filter results",
+      "requirementRef": "REQ-06",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/listing.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-032",
+      "feature": "Product detail",
+      "journey": "Guest adds a product to the cart from its page",
+      "testType": "Positive",
+      "priority": "High",
+      "preconditions": "Guest; empty cart",
+      "testData": "product = \"Computing and Internet\" (/computing-and-internet)",
+      "steps": [
+        "Open /computing-and-internet (waitUntil domcontentloaded)",
+        "Select \"Add to cart\" inside .overview"
+      ],
+      "expected": "#bar-notification (class success) shows \"The product has been added to your shopping cart\"; header shows \"Shopping cart (1)\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopProductPage",
+      "risk": "Revenue: products cannot be bought",
+      "requirementRef": "REQ-07",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/product.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-033",
+      "feature": "Product detail",
+      "journey": "Quantity 0 and non-numeric quantity are rejected",
+      "testType": "Boundary",
+      "priority": "Medium",
+      "preconditions": "Guest; empty cart",
+      "testData": "qty = \"0\", then qty = \"abc\"",
+      "steps": [
+        "Open /computing-and-internet",
+        "Fill \"Qty:\" with 0 and select \"Add to cart\" in .overview",
+        "Fill \"Qty:\" with abc and select \"Add to cart\" again"
+      ],
+      "expected": "Each attempt: #bar-notification (class error) shows \"Quantity should be positive\"; header stays \"Shopping cart (0)\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopProductPage",
+      "risk": "Invalid line items",
+      "requirementRef": "REQ-07",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/product.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-034",
+      "feature": "Product detail",
+      "journey": "Negative quantity on the product page",
+      "testType": "Boundary",
+      "priority": "Low",
+      "preconditions": "Guest; empty cart",
+      "testData": "qty = \"-1\"",
+      "steps": [
+        "Open /computing-and-internet",
+        "Fill \"Qty:\" with -1",
+        "Select \"Add to cart\" in .overview"
+      ],
+      "expected": "Not observed (Ambiguity R-23). Expected by analogy with 0 and \"abc\": no item added, header stays \"Shopping cart (0)\". The bar text is recorded on the first run before being asserted.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopProductPage",
+      "risk": "Negative line items could corrupt totals",
+      "requirementRef": "REQ-07",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/product.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-035",
+      "feature": "Product detail",
+      "journey": "Home \"Add to cart\" on a configurable product opens its page",
+      "testType": "Navigation",
+      "priority": "Medium",
+      "preconditions": "Guest on /",
+      "testData": "product = \"Build your own computer\"",
+      "steps": [
+        "On /, select \"Add to cart\" in the product item \"Build your own computer\""
+      ],
+      "expected": "No notification bar; URL /build-your-own-computer with h1 \"Build your own computer\"; header stays \"Shopping cart (0)\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopProductPage",
+      "risk": "Configurable products added without attributes",
+      "requirementRef": "REQ-07",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/product.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-036",
+      "feature": "Product detail",
+      "journey": "Add to cart from the category listing",
+      "testType": "Positive",
+      "priority": "Medium",
+      "preconditions": "Guest; empty cart; on /books",
+      "testData": "First listing item that has \"Add to cart\"",
+      "steps": [
+        "Select \"Add to cart\" in the first .product-item that has the button"
+      ],
+      "expected": "#bar-notification shows \"The product has been added to your shopping cart\"; header \"Shopping cart (1)\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCategoryPage",
+      "risk": "Alternate purchase path broken",
+      "requirementRef": "REQ-07",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/product.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-037",
+      "feature": "Product detail",
+      "journey": "Add-to-cart request fails (network abort)",
+      "testType": "Error Handling",
+      "priority": "Medium",
+      "preconditions": "Guest; empty cart; page.route aborts the add-to-cart AJAX request (URL pattern to be confirmed at implementation, not observed)",
+      "testData": "product = \"Computing and Internet\"",
+      "steps": [
+        "Register page.route abort for the add-to-cart request",
+        "Open /computing-and-internet",
+        "Select \"Add to cart\" in .overview",
+        "Open /cart"
+      ],
+      "expected": "No success bar \"The product has been added to your shopping cart\"; header stays \"Shopping cart (0)\"; /cart shows \"Your Shopping Cart is empty!\". Any user-facing error text is not observed and is not asserted (Ambiguity R-24).",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopProductPage",
+      "risk": "Silent failure misleads the shopper",
+      "requirementRef": "REQ-07",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/resilience.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-038",
+      "feature": "Product detail",
+      "journey": "Retry add to cart after a simulated server error",
+      "testType": "Error Handling",
+      "priority": "Medium",
+      "preconditions": "Guest; empty cart; page.route fulfils the first add-to-cart request with HTTP 500",
+      "testData": "product = \"Computing and Internet\"",
+      "steps": [
+        "Route the add-to-cart request once to a 500 response",
+        "Select \"Add to cart\" in .overview",
+        "Remove the route",
+        "Select \"Add to cart\" again"
+      ],
+      "expected": "After the retry: \"The product has been added to your shopping cart\" and header \"Shopping cart (1)\" (exactly one unit, not two). Behaviour during the 500 is recorded, not asserted (Ambiguity R-24).",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopProductPage",
+      "risk": "Users cannot recover from transient failures",
+      "requirementRef": "REQ-07",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/resilience.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-039",
+      "feature": "Product detail",
+      "journey": "Double-click on Add to cart (duplicate submission)",
+      "testType": "Edge Case",
+      "priority": "Low",
+      "preconditions": "Guest; empty cart",
+      "testData": "product = \"Computing and Internet\"",
+      "steps": [
+        "Open /computing-and-internet",
+        "Double-click \"Add to cart\" in .overview",
+        "Open /cart"
+      ],
+      "expected": "Not observed (Ambiguity R-25). Asserts consistency only: the header count equals the \"Computing and Internet\" row quantity on /cart. The count itself (1 or 2) is recorded.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopProductPage",
+      "risk": "Accidental duplicate quantities",
+      "requirementRef": "REQ-07",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/product.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-040",
+      "feature": "Cart (guest)",
+      "journey": "Update quantity recalculates totals",
+      "testType": "Positive",
+      "priority": "High",
+      "preconditions": "Guest cart holds \"Computing and Internet\" qty 1 (price 10.00 observed)",
+      "testData": "qty = 3",
+      "steps": [
+        "Open /cart",
+        "Set the row qty input to 3",
+        "Select \"Update shopping cart\""
+      ],
+      "expected": "Row total 30.00; \"Sub-Total: 30.00\" and \"Total: 30.00\"; header \"Shopping cart (3)\". (Totals derived as unit price x 3 if the demo price changes.)",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCartPage",
+      "risk": "Revenue and data integrity: wrong totals",
+      "requirementRef": "REQ-08",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/cart-guest.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-041",
+      "feature": "Cart (guest)",
+      "journey": "Remove the only item via the Remove checkbox",
+      "testType": "Positive",
+      "priority": "High",
+      "preconditions": "Guest cart holds one product",
+      "testData": "product = \"Computing and Internet\"",
+      "steps": [
+        "Open /cart",
+        "Tick the row Remove checkbox",
+        "Select \"Update shopping cart\""
+      ],
+      "expected": "\"Your Shopping Cart is empty!\"; header \"Shopping cart (0)\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCartPage",
+      "risk": "Users cannot correct their order",
+      "requirementRef": "REQ-08",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/cart-guest.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-042",
+      "feature": "Cart (guest)",
+      "journey": "Quantity 0 or -1 on update silently removes the row",
+      "testType": "Boundary",
+      "priority": "Medium",
+      "preconditions": "Guest cart holds one product",
+      "testData": "qty = 0, then (fresh cart) -1",
+      "steps": [
+        "Open /cart",
+        "Set row qty to 0 and select \"Update shopping cart\"",
+        "Re-add the product, set qty to -1 and update"
+      ],
+      "expected": "Current behaviour asserted: the row is removed, header \"Shopping cart (0)\", no warning message. Flagged as Discrepancy R-11 (silent removal).",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCartPage",
+      "risk": "Accidental item loss without feedback",
+      "requirementRef": "REQ-08",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/cart-guest.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-043",
+      "feature": "Cart (guest)",
+      "journey": "Checkout blocked until terms of service are accepted",
+      "testType": "Validation",
+      "priority": "High",
+      "preconditions": "Guest cart holds one product",
+      "testData": "None",
+      "steps": [
+        "Open /cart",
+        "Leave #termsofservice unticked",
+        "Select \"Checkout\""
+      ],
+      "expected": "Dialog (role dialog, name \"Terms of service\") shows \"Please accept the terms of service before the next step.\"; URL stays /cart.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCartPage",
+      "risk": "Legal: orders without accepted terms",
+      "requirementRef": "REQ-08",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/cart-guest.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-044",
+      "feature": "Cart (guest)",
+      "journey": "Invalid coupon code is rejected",
+      "testType": "Negative",
+      "priority": "Medium",
+      "preconditions": "Guest cart holds one product",
+      "testData": "coupon = \"INVALIDCOUPON\"",
+      "steps": [
+        "Fill input[name=discountcouponcode] with INVALIDCOUPON",
+        "Select \"Apply coupon\""
+      ],
+      "expected": "Message \"The coupon code you entered couldn't be applied to your order\"; totals unchanged.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCartPage",
+      "risk": "Unauthorised discounts",
+      "requirementRef": "REQ-08",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/cart-guest.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-045",
+      "feature": "Cart (guest)",
+      "journey": "Invalid gift card code shows the coupon message",
+      "testType": "Negative",
+      "priority": "Low",
+      "preconditions": "Guest cart holds one product",
+      "testData": "giftCard = \"INVALIDGIFT\"",
+      "steps": [
+        "Fill input[name=giftcardcouponcode] with INVALIDGIFT",
+        "Select \"Add gift card\""
+      ],
+      "expected": "Current behaviour asserted: \"The coupon code you entered couldn't be applied to your order\" (same text as coupons). Flagged as Discrepancy R-12.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCartPage",
+      "risk": "Misleading error text",
+      "requirementRef": "REQ-08",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/cart-guest.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-046",
+      "feature": "Cart (guest)",
+      "journey": "Empty cart state for a new guest",
+      "testType": "Edge Case",
+      "priority": "Medium",
+      "preconditions": "Fresh guest context",
+      "testData": "None",
+      "steps": [
+        "Open /cart"
+      ],
+      "expected": "\"Your Shopping Cart is empty!\"; header \"Shopping cart (0)\"; no \"Checkout\" button.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCartPage",
+      "risk": "Confusing empty state",
+      "requirementRef": "REQ-08",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/cart-guest.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-047",
+      "feature": "Cart (guest)",
+      "journey": "Estimate shipping lists shipping options",
+      "testType": "Positive",
+      "priority": "Low",
+      "preconditions": "Guest cart holds one product",
+      "testData": "Country \"United States\", Zip \"10001\"",
+      "steps": [
+        "Select Country \"United States\"",
+        "Fill \"Zip / postal code:\" with 10001",
+        "Select \"Estimate shipping\""
+      ],
+      "expected": "Options \"Ground (0.00)\", \"Next Day Air (0.00)\", \"2nd Day Air (0.00)\", \"In-Store Pickup (0.00)\" are listed; no error. Note: checkout charges \"Ground (10.00)\" (Discrepancy R-13).",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCartPage",
+      "risk": "Misleading shipping estimate",
+      "requirementRef": "REQ-08",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/cart-guest.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-048",
+      "feature": "Cart (guest)",
+      "journey": "Guest cart persists after a page refresh",
+      "testType": "Persistence",
+      "priority": "Medium",
+      "preconditions": "Guest cart holds \"Computing and Internet\"",
+      "testData": "None",
+      "steps": [
+        "Open /cart",
+        "Reload the page"
+      ],
+      "expected": "The \"Computing and Internet\" row is still present with qty 1; header \"Shopping cart (1)\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCartPage",
+      "risk": "Lost carts reduce conversion",
+      "requirementRef": "REQ-08",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/cart-guest.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-049",
+      "feature": "Cart (signed in)",
+      "journey": "Signed-in customer adds an own item without touching existing items",
+      "testType": "Positive",
+      "priority": "High",
+      "preconditions": "Signed in as existingUser; \"Health Book\" not already in the account cart (pre-clean removes only known test products); record header count N",
+      "testData": "credentials: existingUser; product = \"Health Book\" (/health)",
+      "steps": [
+        "Record header cart count N",
+        "Open /health and select \"Add to cart\" in .overview",
+        "Open /cart",
+        "Cleanup (afterEach, also on failure): remove only the \"Health Book\" row"
+      ],
+      "expected": "\"The product has been added to your shopping cart\"; header count N+1; a \"Health Book\" row with qty 1 exists. Pre-existing rows (e.g. \"14.1-inch Laptop\") are untouched. After cleanup the header count is N again.",
+      "browsers": [
+        "chromium"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCartPage",
+      "risk": "Revenue; shared account state (R-01, R-07)",
+      "requirementRef": "REQ-09",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/cart-signed-in.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-050",
+      "feature": "Cart (signed in)",
+      "journey": "Account cart persists across logout and login",
+      "testType": "Persistence",
+      "priority": "High",
+      "preconditions": "Signed in as existingUser; count N recorded; \"Health Book\" not in the account cart",
+      "testData": "credentials: existingUser; product = \"Health Book\"",
+      "steps": [
+        "Add \"Health Book\" to the cart",
+        "Log out",
+        "Check guest header",
+        "Sign in again",
+        "Open /cart",
+        "Cleanup: remove only \"Health Book\""
+      ],
+      "expected": "After logout the header shows \"Shopping cart (0)\". After signing in again the header count is N+1 and the \"Health Book\" row is present with qty 1.",
+      "browsers": [
+        "chromium"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCartPage",
+      "risk": "Data integrity: lost saved carts",
+      "requirementRef": "REQ-09",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/cart-signed-in.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-051",
+      "feature": "Cart (signed in)",
+      "journey": "Guest cart merges into the account cart on login",
+      "testType": "Persistence",
+      "priority": "High",
+      "preconditions": "Signed out; \"Computing and Internet\" not in the account cart (avoids the unobserved same-product merge rule, R-26); account count N known from a prior signed-in read",
+      "testData": "credentials: existingUser; product = \"Computing and Internet\"",
+      "steps": [
+        "As a guest add \"Computing and Internet\"",
+        "Sign in",
+        "Open /cart",
+        "Cleanup: remove only \"Computing and Internet\""
+      ],
+      "expected": "After login the header count is N+1 and the cart has a \"Computing and Internet\" row with qty 1 alongside the pre-existing rows.",
+      "browsers": [
+        "chromium"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCartPage",
+      "risk": "Data integrity: guest selections lost at login",
+      "requirementRef": "REQ-09",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/cart-signed-in.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-052",
+      "feature": "Checkout (signed in)",
+      "journey": "Signed-in checkout reaches Billing with prefilled details (stop at Billing)",
+      "testType": "Positive",
+      "priority": "High",
+      "preconditions": "Signed in as existingUser; own item \"Health Book\" added; account has no saved address",
+      "testData": "credentials: existingUser; product = \"Health Book\"",
+      "steps": [
+        "Open /cart",
+        "Select \"Checkout\" with #termsofservice unticked",
+        "Close the dialog, tick #termsofservice, select \"Checkout\"",
+        "Inspect the Billing step without selecting Continue",
+        "Cleanup: remove only \"Health Book\""
+      ],
+      "expected": "Unticked: dialog \"Terms of service\" shows \"Please accept the terms of service before the next step.\" and URL stays /cart. Ticked: URL /onepagecheckout directly (no /login/checkoutasguest), h1 \"Checkout\"; steps \"Billing Address\", \"Shipping Address\", \"Shipping Method\", \"Payment Method\", \"Payment Information\", \"Confirm Order\". Billing First name and Last name are non-empty, Email equals the existingUser email, Country shows \"Select country\". Continue is never selected (D5: nothing saved to the account).",
+      "browsers": [
+        "chromium"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCheckoutPage",
+      "risk": "Revenue: signed-in customers cannot start checkout",
+      "requirementRef": "REQ-11",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/checkout-signed-in.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-053",
+      "feature": "Wishlist",
+      "journey": "Guest wishlist empty state",
+      "testType": "Edge Case",
+      "priority": "Low",
+      "preconditions": "Fresh guest context",
+      "testData": "None",
+      "steps": [
+        "Open /wishlist"
+      ],
+      "expected": "\"The wishlist is empty!\"; header \"Wishlist (0)\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopWishlistPage",
+      "risk": "Confusing empty state",
+      "requirementRef": "REQ-10",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/wishlist.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-054",
+      "feature": "Wishlist",
+      "journey": "Guest adds a product to the wishlist",
+      "testType": "Positive",
+      "priority": "Medium",
+      "preconditions": "Guest; empty wishlist",
+      "testData": "product = \"Health Book\" (/health)",
+      "steps": [
+        "Open /health",
+        "Select \"Add to wishlist\""
+      ],
+      "expected": "#bar-notification (success) shows \"The product has been added to your wishlist\"; header \"Wishlist (1)\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopProductPage",
+      "risk": "Lost purchase intent",
+      "requirementRef": "REQ-10",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/wishlist.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-055",
+      "feature": "Wishlist",
+      "journey": "Guest views the wishlist, sees the share URL and removes the item",
+      "testType": "Positive",
+      "priority": "Medium",
+      "preconditions": "Guest wishlist holds \"Health Book\"",
+      "testData": "None",
+      "steps": [
+        "Open /wishlist",
+        "Read the row and share text",
+        "Tick the row Remove checkbox",
+        "Select \"Update wishlist\""
+      ],
+      "expected": "Row \"Health Book\" with price 10.00 and qty 1; text \"Your wishlist URL for sharing:\" followed by a /wishlist/<guid> URL (currently http, Discrepancy R-15). After removal: \"The wishlist is empty!\" and header \"Wishlist (0)\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopWishlistPage",
+      "risk": "Users cannot manage saved items",
+      "requirementRef": "REQ-10",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/wishlist.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-056",
+      "feature": "Wishlist",
+      "journey": "Move a wishlist item to the cart",
+      "testType": "Positive",
+      "priority": "Low",
+      "preconditions": "Guest wishlist holds \"Health Book\"; empty cart",
+      "testData": "None",
+      "steps": [
+        "Open /wishlist",
+        "Tick the row \"Add to cart\" checkbox",
+        "Select the \"Add to cart\" button"
+      ],
+      "expected": "Not observed (Ambiguity R-27). Asserted after first run: a \"Health Book\" row appears in /cart and the header cart count increases by 1. Whether the item leaves the wishlist is recorded, not asserted.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopWishlistPage",
+      "risk": "Alternate purchase path broken",
+      "requirementRef": "REQ-10",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/wishlist.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-057",
+      "feature": "Wishlist",
+      "journey": "Signed-in customer adds and removes an own wishlist item",
+      "testType": "Positive",
+      "priority": "Medium",
+      "preconditions": "Signed in as existingUser; \"Health Book\" not in the account wishlist; record wishlist count W",
+      "testData": "credentials: existingUser; product = \"Health Book\"",
+      "steps": [
+        "Open /health and select \"Add to wishlist\"",
+        "Open /wishlist",
+        "Tick Remove on the \"Health Book\" row only",
+        "Select \"Update wishlist\""
+      ],
+      "expected": "\"The product has been added to your wishlist\"; header \"Wishlist (W+1)\"; /wishlist (h1 \"Wishlist\") has a \"Health Book\" row. After removal the header returns to \"Wishlist (W)\" and the \"Health Book\" row is gone.",
+      "browsers": [
+        "chromium"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopWishlistPage",
+      "risk": "Shared account state (R-01)",
+      "requirementRef": "REQ-10",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/wishlist.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-058",
+      "feature": "Checkout (guest)",
+      "journey": "Guest reaches checkout via \"Checkout as Guest\"",
+      "testType": "Navigation",
+      "priority": "High",
+      "preconditions": "Guest cart holds \"Health Book\"",
+      "testData": "product = \"Health Book\"",
+      "steps": [
+        "Open /cart",
+        "Tick #termsofservice",
+        "Select \"Checkout\"",
+        "Select \"Checkout as Guest\""
+      ],
+      "expected": "First /login/checkoutasguest?returnUrl=%2Fcart with h1 \"Welcome, Please Sign In!\" and buttons \"Checkout as Guest\", \"Register\", \"Log in\". Then /onepagecheckout with h1 \"Checkout\" and steps \"Billing Address\", \"Shipping Address\", \"Shipping Method\", \"Payment Method\", \"Payment Information\", \"Confirm Order\"; the billing new-address form is shown.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCheckoutPage",
+      "risk": "Revenue: guests cannot check out",
+      "requirementRef": "REQ-11",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/checkout-guest.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-059",
+      "feature": "Checkout (guest)",
+      "journey": "Billing step required fields and email format",
+      "testType": "Validation",
+      "priority": "Medium",
+      "preconditions": "Guest on the Billing step",
+      "testData": "invalidEmail = \"not-an-email\"",
+      "steps": [
+        "Select Continue in #billing-buttons-container without filling fields",
+        "Fill billing \"Email:\" with not-an-email and select Continue"
+      ],
+      "expected": "Billing step stays open with: \"First name is required.\", \"Last name is required.\", \"Email is required.\", \"Country is required.\", \"City is required\", \"Street address is required\", \"Zip / postal code is required\", \"Phone is required\" (last four without trailing period). With not-an-email: \"Wrong email\"; #opc-billing stays active.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCheckoutPage",
+      "risk": "Orders with incomplete addresses",
+      "requirementRef": "REQ-11",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/checkout-guest.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-060",
+      "feature": "Checkout (guest)",
+      "journey": "Guest checkout steps through to the Confirm Order summary (no order placed)",
+      "testType": "Cross-Browser",
+      "priority": "High",
+      "preconditions": "Guest cart holds only \"Health Book\" qty 1; on Billing",
+      "testData": "guestEmail (generated); guestAddress (fixed fictional)",
+      "steps": [
+        "Fill billing with guestAddress and guestEmail; Continue",
+        "Shipping Address: keep the preselected address; Continue",
+        "Shipping Method: keep \"Ground (10.00)\"; Continue",
+        "Payment Method: verify COD (Payments.CashOnDelivery) is checked; Continue",
+        "Payment Information: Continue",
+        "Inspect Confirm Order; do NOT select Confirm",
+        "Cleanup: empty the guest cart"
+      ],
+      "expected": "Active step moves #opc-billing to #opc-confirm_order one per Continue. Payment Information shows \"You will pay by COD\". Confirm summary: billing \"QA Automation\", \"1 Test Street\", \"Testville , New York 10001\", \"United States\"; \"Payment Method\" \"Cash On Delivery (COD)\"; \"Shipping Method\" \"Ground\"; row \"Health Book 10.00 1 10.00\"; \"Sub-Total: 10.00\", \"Shipping: (Ground) 10.00\", \"Payment method additional fee: 7.00\", \"Tax: 0.00\", \"Total: 27.00\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCheckoutPage",
+      "risk": "Revenue: checkout broken in a browser; gives Firefox/WebKit checkout coverage without placing orders (R-08)",
+      "requirementRef": "REQ-11",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/checkout-guest.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-061",
+      "feature": "Checkout (guest)",
+      "journey": "Guest places a Cash On Delivery order end to end",
+      "testType": "Positive",
+      "priority": "High",
+      "preconditions": "Guest cart holds only \"Health Book\" qty 1; retries disabled for this test (each attempt creates a permanent order)",
+      "testData": "guestEmail (generated); guestAddress (fixed fictional)",
+      "steps": [
+        "Complete Billing, Shipping Address, Shipping Method (Ground) as a guest",
+        "Verify COD (value Payments.CashOnDelivery) is checked; never select another method",
+        "Continue through Payment Information",
+        "Select Confirm in #confirm-order-buttons-container",
+        "Select \"Click here for order details.\""
+      ],
+      "expected": "URL /checkout/completed/, h1 \"Thank you\", \"Your order has been successfully processed!\", \"Order number: <digits>\", link \"Click here for order details.\". Order details /orderdetails/<orderNumber>: h1 \"Order information\", \"Order #<orderNumber>\", \"Order Status: Pending\", \"Payment Method Cash On Delivery (COD)\", \"Shipping Method Ground\", row \"Health Book 10.00 1 10.00\", \"Sub-Total: 10.00\", \"Shipping: 10.00\", \"Payment method additional fee: 7.00\", \"Tax: 0.00\", \"Order Total: 27.00\". /cart then shows \"Your Shopping Cart is empty!\".",
+      "browsers": [
+        "chromium"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopOrderPage",
+      "risk": "Revenue: orders cannot be placed; creates a permanent demo order (R-06)",
+      "requirementRef": "REQ-16",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/checkout-cod.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-062",
+      "feature": "Checkout (guest)",
+      "journey": "Back link on the Shipping Address step returns to Billing",
+      "testType": "Navigation",
+      "priority": "Low",
+      "preconditions": "Guest on the Shipping Address step after a valid Billing",
+      "testData": "guestEmail (generated); guestAddress",
+      "steps": [
+        "Select \"Back\" on the Shipping Address step"
+      ],
+      "expected": "Not observed (Ambiguity R-28). Asserted after first run: #opc-billing becomes active again and no order is created.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopCheckoutPage",
+      "risk": "Users cannot correct earlier steps",
+      "requirementRef": "REQ-11",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/checkout-guest.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-063",
+      "feature": "My account",
+      "journey": "Customer info and account navigation (read only)",
+      "testType": "Positive",
+      "priority": "Medium",
+      "preconditions": "Signed in as existingUser",
+      "testData": "credentials: existingUser",
+      "steps": [
+        "Select the header account link",
+        "Read the links in .block-account-navigation",
+        "Select \"Addresses\", then \"Orders\""
+      ],
+      "expected": "URL /customer/info, title \"Demo Web Shop. Account\", h1 \"My account - Customer info\", \"Your Personal Details\"; labels \"First name:\", \"Last name:\", \"Email:\" present; Email value equals the existingUser email; \"Save\" visible (not clicked). Navigation links \"Customer info\", \"Addresses\", \"Orders\", \"Downloadable products\", \"Back in stock subscriptions\", \"Reward points\", \"Change password\". Addresses opens h1 \"My account - Addresses\" with \"Add new\" (not clicked); Orders opens h1 \"My account - Orders\".",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopAccountPage",
+      "risk": "Customers cannot see their profile",
+      "requirementRef": "REQ-12",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/account.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-064",
+      "feature": "My account",
+      "journey": "Addresses, Orders and Reward points empty states",
+      "testType": "Edge Case",
+      "priority": "Low",
+      "preconditions": "Signed in; account has no addresses, no orders and no reward points (A2, R-29)",
+      "testData": "credentials: existingUser",
+      "steps": [
+        "Open /customer/addresses",
+        "Open /customer/orders",
+        "Open /customer/rewardpoints"
+      ],
+      "expected": "\"No addresses\" on Addresses; \"No orders\" on Orders; Reward points h1 \"My account - Reward points\" with \"Your current balance is 0 reward points (0.00).\", \"History\" and \"There is no balance history yet\". If the shared account gains data, the test reports the assumption as broken rather than failing on a defect.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopAccountPage",
+      "risk": "Depends on shared account state",
+      "requirementRef": "ASSUMPTION-01",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/account.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-065",
+      "feature": "My account",
+      "journey": "Change password form fields are present (never submitted)",
+      "testType": "Positive",
+      "priority": "Low",
+      "preconditions": "Signed in",
+      "testData": "credentials: existingUser",
+      "steps": [
+        "Open /customer/changepassword"
+      ],
+      "expected": "h1 \"My account - Change password\"; labels \"Old password:\", \"New password:\", \"Confirm password:\"; button \"Change password\" visible. The form is never submitted.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopAccountPage",
+      "risk": "Low impact; submission out of scope",
+      "requirementRef": "REQ-12",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/account.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-066",
+      "feature": "My account",
+      "journey": "Downloadable products page loads",
+      "testType": "Edge Case",
+      "priority": "Low",
+      "preconditions": "Signed in",
+      "testData": "credentials: existingUser",
+      "steps": [
+        "Open /customer/downloadableproducts"
+      ],
+      "expected": "Unknown: the page never rendered an h1 within 45 s in discovery. Expected content is not specified.",
+      "browsers": [
+        "chromium"
+      ],
+      "automationStatus": "Blocked",
+      "pageObject": "DemoWebShopAccountPage",
+      "risk": "Possible defect; timeouts would destabilise CI",
+      "requirementRef": "REQ-12",
+      "executionStatus": "Not Run",
+      "failureNotes": "Blocked by environment: /customer/downloadableproducts did not render within 20 s (twice) and 45 s (once) during discovery (discovery.md 3, 4.11). Excluded from CI gating; re-check manually (R-05).",
+      "specFile": "tests/demo-web-shop/account.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-067",
+      "feature": "Responsive",
+      "journey": "Mobile layout and category menu at 375x812",
+      "testType": "Responsive",
+      "priority": "Medium",
+      "preconditions": "Viewport 375x812 (isMobile, hasTouch where supported)",
+      "testData": "None",
+      "steps": [
+        "Open /",
+        "Measure document scrollWidth",
+        "Select #mob-menu-button"
+      ],
+      "expected": "scrollWidth equals 375 (no horizontal scroll); \"Register\", \"Log in\", \"Shopping cart (0)\", \"Wishlist (0)\" and #small-searchterms visible; .top-menu is hidden; #mob-menu-button visible; after selecting it .mob-top-menu shows BOOKS, COMPUTERS, ELECTRONICS, APPAREL & SHOES, DIGITAL DOWNLOADS, JEWELRY, GIFT CARDS.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopHeader",
+      "risk": "Mobile users cannot browse categories",
+      "requirementRef": "REQ-13",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/responsive.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-068",
+      "feature": "Accessibility",
+      "journey": "Keyboard-only sign-in",
+      "testType": "Accessibility",
+      "priority": "Low",
+      "preconditions": "Signed out; on /login",
+      "testData": "credentials: existingUser",
+      "steps": [
+        "Focus \"Email:\" with Tab",
+        "Type email, Tab to \"Password:\", type password",
+        "Press Enter"
+      ],
+      "expected": "Report-only (does not fail CI): user is signed in (\"Log out\" visible). Tab order is not observed (Ambiguity R-30); the observed order is recorded.",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopLoginPage",
+      "risk": "Keyboard users excluded",
+      "requirementRef": "REQ-14",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/accessibility.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-069",
+      "feature": "Accessibility",
+      "journey": "Known accessibility gaps report (lang, h1, accessible names)",
+      "testType": "Accessibility",
+      "priority": "Low",
+      "preconditions": "Guest",
+      "testData": "Pages: /, /books, /cart (with one item), /register",
+      "steps": [
+        "Check <html lang>",
+        "Check home h1",
+        "Query accessible names of header search, listing selects, cart qty/remove/terms/coupon/gift card inputs, newsletter email"
+      ],
+      "expected": "Report-only: records the known gaps observed in discovery 4.10 (no lang attribute, no home h1, unnamed controls) as annotations; never fails CI until a WCAG target is agreed (R-31).",
+      "browsers": [
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
+      "automationStatus": "Automated",
+      "pageObject": "DemoWebShopHeader",
+      "risk": "Accessibility non-compliance",
+      "requirementRef": "REQ-14",
+      "executionStatus": "Not Run",
+      "failureNotes": "",
+      "specFile": "tests/demo-web-shop/accessibility.spec.ts",
+      "lastRun": "",
+      "lastRunNotes": ""
+    },
+    {
+      "id": "DWS-070",
+      "feature": "Accessibility",
+      "journey": "Automated axe scan of key pages",
+      "testType": "Accessibility",
+      "priority": "Low",
+      "preconditions": "@axe-core/playwright available",
+      "testData": "Pages: /, /login, /books, /computing-and-internet, /cart",
+      "steps": [
+        "Run an axe scan on each page"
+      ],
+      "expected": "Report-only list of violations by page; no CI gating.",
+      "browsers": [
+        "chromium"
+      ],
+      "automationStatus": "Manual",
+      "pageObject": "DemoWebShopHeader",
+      "risk": "Accessibility non-compliance",
+      "requirementRef": "REQ-14",
+      "executionStatus": "Not Run",
+      "failureNotes": "@axe-core/playwright is not installed in package.json; adding a dependency needs approval. Run manually with the axe browser extension until then.",
+      "specFile": "",
+      "lastRun": "",
+      "lastRunNotes": ""
+    }
+  ],
+  "testData": [
+    {
+      "key": "existingEmail",
+      "source": "credentials:existingUser.email",
+      "usedBy": [
+        "DWS-001",
+        "DWS-002",
+        "DWS-007",
+        "DWS-008",
+        "DWS-009",
+        "DWS-010",
+        "DWS-011",
+        "DWS-013",
+        "DWS-020",
+        "DWS-049",
+        "DWS-050",
+        "DWS-051",
+        "DWS-052",
+        "DWS-057",
+        "DWS-063",
+        "DWS-064",
+        "DWS-065",
+        "DWS-066",
+        "DWS-068"
+      ],
+      "notes": "Pre-registered shared account (D2). Never logged; also the duplicate-registration email"
+    },
+    {
+      "key": "existingCredential",
+      "source": "credentials:existingUser.password",
+      "usedBy": [
+        "DWS-001",
+        "DWS-002",
+        "DWS-007",
+        "DWS-008",
+        "DWS-009",
+        "DWS-010",
+        "DWS-011",
+        "DWS-013",
+        "DWS-049",
+        "DWS-050",
+        "DWS-051",
+        "DWS-052",
+        "DWS-057",
+        "DWS-063",
+        "DWS-064",
+        "DWS-065",
+        "DWS-066",
+        "DWS-068"
+      ],
+      "notes": "Pre-registered shared account secret"
+    },
+    {
+      "key": "unknownEmail",
+      "value": "qa.unknown+{timestamp}@example.test",
+      "source": "generated",
+      "usedBy": [
+        "DWS-003"
+      ],
+      "notes": "Unique per run; reserved example.test domain"
+    },
+    {
+      "key": "wrongLoginValue",
+      "value": "wrong-{timestamp}",
+      "source": "generated",
+      "usedBy": [
+        "DWS-002",
+        "DWS-003",
+        "DWS-006"
+      ],
+      "notes": "Deliberately incorrect login value, never a real credential"
+    },
+    {
+      "key": "registerDummyPw",
+      "value": "Qa-{timestamp}",
+      "source": "generated",
+      "usedBy": [
+        "DWS-020"
+      ],
+      "notes": "Throwaway value; the server rejects the duplicate email so no account is created"
+    },
+    {
+      "key": "guestEmail",
+      "value": "qa.guest+{timestamp}@example.test",
+      "source": "generated",
+      "usedBy": [
+        "DWS-060",
+        "DWS-061",
+        "DWS-062"
+      ],
+      "notes": "Unique per run (D5 allows qa.guest@example.test or a unique variant). Confirm-summary assertions use the generated value"
+    },
+    {
+      "key": "guestAddress",
+      "value": "First name \"QA\"; Last name \"Automation\"; Country \"United States\"; State \"New York\"; City \"Testville\"; Address 1 \"1 Test Street\"; Zip \"10001\"; Phone \"5550100\"",
+      "source": "fixed",
+      "usedBy": [
+        "DWS-060",
+        "DWS-061",
+        "DWS-062"
+      ],
+      "notes": "Fictional address (D5, discovery 4.12)"
+    },
+    {
+      "key": "productSimple",
+      "value": "Computing and Internet (/computing-and-internet), 10.00",
+      "source": "catalogue",
+      "usedBy": [
+        "DWS-032",
+        "DWS-037",
+        "DWS-038",
+        "DWS-039",
+        "DWS-040",
+        "DWS-041",
+        "DWS-048",
+        "DWS-051"
+      ],
+      "notes": "Shared demo catalogue; price may change (R-02)"
+    },
+    {
+      "key": "productWishlistable",
+      "value": "Health Book (/health), 10.00",
+      "source": "catalogue",
+      "usedBy": [
+        "DWS-049",
+        "DWS-050",
+        "DWS-052",
+        "DWS-054",
+        "DWS-055",
+        "DWS-056",
+        "DWS-057",
+        "DWS-058",
+        "DWS-060",
+        "DWS-061"
+      ],
+      "notes": "Has both Add to cart and Add to wishlist; used as the own test item for signed-in tests (D1)"
+    },
+    {
+      "key": "searchTerms",
+      "value": "computer; zzqxnotfound; ab; a; comp; \"   \"",
+      "source": "fixed",
+      "usedBy": [
+        "DWS-021",
+        "DWS-022",
+        "DWS-023",
+        "DWS-024",
+        "DWS-025",
+        "DWS-026"
+      ],
+      "notes": "Observed in discovery 4.3"
+    },
+    {
+      "key": "invalidInputs",
+      "value": "abc (login email); not-an-email; qty 0, -1, abc; INVALIDCOUPON; INVALIDGIFT",
+      "source": "fixed",
+      "usedBy": [
+        "DWS-005",
+        "DWS-017",
+        "DWS-018",
+        "DWS-019",
+        "DWS-033",
+        "DWS-034",
+        "DWS-042",
+        "DWS-044",
+        "DWS-045",
+        "DWS-059"
+      ],
+      "notes": "Observed in discovery 4.1, 4.2, 4.5, 4.6, 4.8"
+    },
+    {
+      "key": "mobileViewport",
+      "value": "375x812",
+      "source": "fixed",
+      "usedBy": [
+        "DWS-067"
+      ],
+      "notes": "Discovery 4.9"
+    }
+  ],
+  "risks": [
+    {
+      "id": "R-01",
+      "type": "Risk",
+      "description": "Shared account: one existingUser account is used by all signed-in tests and all browsers (D2). Its cart persists and guest carts merge into it at login.",
+      "impact": "High",
+      "mitigation": "workers: 1, no parallel runs; signed-in state-changing tests on Chromium only; own-item cleanup in afterEach (also on failure); pre-clean removes only known test products (Health Book, Computing and Internet); count-relative assertions.",
+      "scenarios": [
+        "DWS-001",
+        "DWS-002",
+        "DWS-007",
+        "DWS-008",
+        "DWS-009",
+        "DWS-010",
+        "DWS-011",
+        "DWS-013",
+        "DWS-020",
+        "DWS-049",
+        "DWS-050",
+        "DWS-051",
+        "DWS-052",
+        "DWS-057",
+        "DWS-063",
+        "DWS-064",
+        "DWS-065",
+        "DWS-066",
+        "DWS-068"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-02",
+      "type": "Risk",
+      "description": "Public shared demo site: other users change catalogue, prices, carts and possibly the account; the site can be slow or down.",
+      "impact": "High",
+      "mitigation": "Assert names, order and ranges rather than catalogue-wide counts; health-check the base URL before the suite; classify outages as environment failures.",
+      "scenarios": [
+        "DWS-021",
+        "DWS-022",
+        "DWS-023",
+        "DWS-024",
+        "DWS-025",
+        "DWS-026",
+        "DWS-027",
+        "DWS-028",
+        "DWS-029",
+        "DWS-030",
+        "DWS-031",
+        "DWS-040",
+        "DWS-047",
+        "DWS-055",
+        "DWS-060",
+        "DWS-061"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-03",
+      "type": "Risk",
+      "description": "Third-party script s7.addthis.com fails DNS on product pages and stalls the load event (goto timed out at 30 s).",
+      "impact": "Medium",
+      "mitigation": "Navigate with waitUntil: \"domcontentloaded\" or block s7.addthis.com via page.route; wait for specific elements.",
+      "scenarios": [
+        "DWS-032",
+        "DWS-033",
+        "DWS-034",
+        "DWS-035",
+        "DWS-036",
+        "DWS-037",
+        "DWS-038",
+        "DWS-039",
+        "DWS-040",
+        "DWS-041",
+        "DWS-042",
+        "DWS-043",
+        "DWS-044",
+        "DWS-045",
+        "DWS-046",
+        "DWS-047",
+        "DWS-048",
+        "DWS-049",
+        "DWS-050",
+        "DWS-051",
+        "DWS-052",
+        "DWS-053",
+        "DWS-054",
+        "DWS-055",
+        "DWS-056",
+        "DWS-057",
+        "DWS-058",
+        "DWS-059",
+        "DWS-060",
+        "DWS-061",
+        "DWS-062"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-04",
+      "type": "Risk",
+      "description": "Account lockout or throttling threshold after failed logins is unknown; 4 failed attempts were already made during discovery. CI uses retries: 2, which could repeat a failed wrong-password attempt.",
+      "impact": "High",
+      "mitigation": "At most one wrong-password attempt against existingUser per full run: Chromium only, retries disabled for that test; other negative logins use unknown example.test emails.",
+      "scenarios": [
+        "DWS-002"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-05",
+      "type": "Defect",
+      "description": "/customer/downloadableproducts did not render within 20 s or 45 s (possible defect).",
+      "impact": "Medium",
+      "mitigation": "Scenario Blocked and excluded from CI gating; re-check manually and report.",
+      "scenarios": [
+        "DWS-066"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-06",
+      "type": "Risk",
+      "description": "Each guest COD order creates a permanent order on the public demo (accepted by the user, D5).",
+      "impact": "Medium",
+      "mitigation": "One order per run: the COD scenario runs on Chromium only with retries disabled; Confirm is clicked only after COD (Payments.CashOnDelivery) is verified; no other payment method is ever selected.",
+      "scenarios": [
+        "DWS-061"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-07",
+      "type": "Risk",
+      "description": "The account cart holds a pre-existing \"14.1-inch Laptop\" that tests must never touch (D1). nopCommerce checks out the whole cart, so signed-in checkout stops at Billing (D5).",
+      "impact": "High",
+      "mitigation": "Row-specific, count-relative assertions; cleanup removes only test-added rows; signed-in checkout never selects Continue on Billing.",
+      "scenarios": [
+        "DWS-049",
+        "DWS-050",
+        "DWS-051",
+        "DWS-052",
+        "DWS-057"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-08",
+      "type": "Assumption",
+      "description": "Decision: the order-placing COD scenario runs on Chromium only to limit permanent demo orders. Firefox and WebKit checkout coverage comes from the all-browser walk to the Confirm Order summary (Confirm not clicked), which exercises every step except order submission. A per-browser order was judged not essential.",
+      "impact": "Medium",
+      "mitigation": "If a browser-specific defect on Confirm is suspected, run the COD scenario once manually on that browser.",
+      "scenarios": [
+        "DWS-060",
+        "DWS-061"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-09",
+      "type": "Assumption",
+      "description": "Firefox and WebKit render the same markup and messages as Chromium (only Chromium was probed).",
+      "impact": "Medium",
+      "mitigation": "Treat the first Firefox/WebKit run as exploratory; investigate failures before labelling them flaky.",
+      "scenarios": [
+        "DWS-001",
+        "DWS-003",
+        "DWS-004",
+        "DWS-005",
+        "DWS-006",
+        "DWS-007",
+        "DWS-008",
+        "DWS-009",
+        "DWS-010",
+        "DWS-011",
+        "DWS-012",
+        "DWS-013",
+        "DWS-014",
+        "DWS-015",
+        "DWS-016",
+        "DWS-017",
+        "DWS-018",
+        "DWS-019",
+        "DWS-020",
+        "DWS-021",
+        "DWS-022",
+        "DWS-023",
+        "DWS-024",
+        "DWS-025",
+        "DWS-026",
+        "DWS-027",
+        "DWS-028",
+        "DWS-029",
+        "DWS-030",
+        "DWS-031",
+        "DWS-032",
+        "DWS-033",
+        "DWS-034",
+        "DWS-035",
+        "DWS-036",
+        "DWS-037",
+        "DWS-038",
+        "DWS-039",
+        "DWS-040",
+        "DWS-041",
+        "DWS-042",
+        "DWS-043",
+        "DWS-044",
+        "DWS-045",
+        "DWS-046",
+        "DWS-047",
+        "DWS-048",
+        "DWS-053",
+        "DWS-054",
+        "DWS-055",
+        "DWS-056",
+        "DWS-058",
+        "DWS-059",
+        "DWS-060",
+        "DWS-062",
+        "DWS-063",
+        "DWS-064",
+        "DWS-065",
+        "DWS-067",
+        "DWS-068",
+        "DWS-069"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-10",
+      "type": "Assumption",
+      "description": "No CAPTCHA appears on login or registration (none observed).",
+      "impact": "Low",
+      "mitigation": "If one appears, stop and report; never bypass.",
+      "scenarios": [
+        "DWS-001",
+        "DWS-002",
+        "DWS-003",
+        "DWS-004",
+        "DWS-005",
+        "DWS-006",
+        "DWS-016",
+        "DWS-017",
+        "DWS-018",
+        "DWS-019",
+        "DWS-020"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-11",
+      "type": "Discrepancy",
+      "description": "Cart quantity 0 or -1 with \"Update shopping cart\" silently removes the row with no message. Tests assert current behaviour; possible defect.",
+      "impact": "Medium",
+      "mitigation": "Report to product owner; update the assertion if the behaviour is changed.",
+      "scenarios": [
+        "DWS-042"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-12",
+      "type": "Discrepancy",
+      "description": "An invalid gift card shows the coupon text \"The coupon code you entered couldn't be applied to your order\". Tests assert current behaviour; possible defect.",
+      "impact": "Low",
+      "mitigation": "Report; update the assertion if a gift-card-specific message is introduced.",
+      "scenarios": [
+        "DWS-045"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-13",
+      "type": "Discrepancy",
+      "description": "Cart \"Estimate shipping\" lists \"Ground (0.00)\" for United States 10001, but checkout charges \"Ground (10.00)\" for the same address.",
+      "impact": "Medium",
+      "mitigation": "Report as a possible defect or configuration gap; assert each screen as observed.",
+      "scenarios": [
+        "DWS-047",
+        "DWS-060",
+        "DWS-061"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-14",
+      "type": "Discrepancy",
+      "description": "Login reveals whether an email exists: \"No customer account found\" for unknown emails vs \"The credentials provided are incorrect\" for a known email (account enumeration).",
+      "impact": "Medium",
+      "mitigation": "Assert observed text; report as a security observation for product decision (Q-NB2).",
+      "scenarios": [
+        "DWS-002",
+        "DWS-003",
+        "DWS-004"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-15",
+      "type": "Discrepancy",
+      "description": "Wishlist share URL uses http, not https.",
+      "impact": "Low",
+      "mitigation": "Assert only the /wishlist/<guid> path; report the scheme.",
+      "scenarios": [
+        "DWS-055"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-16",
+      "type": "Assumption",
+      "description": "Pre-clean before signed-in tests removes only rows for known test products (Health Book, Computing and Internet) left by an interrupted run; this could also remove those products if the account owner added them manually.",
+      "impact": "Low",
+      "mitigation": "Document the reserved test products; the owner must not keep them in the account cart.",
+      "scenarios": [
+        "DWS-049",
+        "DWS-050",
+        "DWS-051",
+        "DWS-052",
+        "DWS-057"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-17",
+      "type": "Ambiguity",
+      "description": "Login with a whitespace-only email: message not observed.",
+      "impact": "Low",
+      "mitigation": "First run records the message; assert only that the user stays signed out.",
+      "scenarios": [
+        "DWS-006"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-18",
+      "type": "Ambiguity",
+      "description": "Server-side session timeout and \"Remember me?\" duration are not observed; expiry is simulated by clearing cookies.",
+      "impact": "Medium",
+      "mitigation": "Ask for timeout values; add a real-expiry scenario if provided.",
+      "scenarios": [
+        "DWS-010"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-19",
+      "type": "Ambiguity",
+      "description": "/login renders for a signed-in user without redirect; intent unspecified.",
+      "impact": "Low",
+      "mitigation": "Assert observed behaviour; confirm with product owner.",
+      "scenarios": [
+        "DWS-011"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-20",
+      "type": "Ambiguity",
+      "description": "Returning to the ReturnUrl page after sign-in was never observed (REQ-03 Assumed).",
+      "impact": "High",
+      "mitigation": "Assert only after the first run confirms; otherwise record the actual landing page as a requirement gap.",
+      "scenarios": [
+        "DWS-013"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-21",
+      "type": "Ambiguity",
+      "description": "/customer/backinstocksubscriptions renders for guests while other /customer/* pages redirect.",
+      "impact": "Low",
+      "mitigation": "Assert observed behaviour and flag as a possible defect.",
+      "scenarios": [
+        "DWS-014"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-22",
+      "type": "Ambiguity",
+      "description": "Whitespace-only search term behaviour not observed (alert vs minimum-length message).",
+      "impact": "Low",
+      "mitigation": "Record on first run; assert only that no products are listed.",
+      "scenarios": [
+        "DWS-026"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-23",
+      "type": "Ambiguity",
+      "description": "Negative quantity on the product page was not observed (only 0 and \"abc\").",
+      "impact": "Low",
+      "mitigation": "Record the bar text on first run; assert header unchanged.",
+      "scenarios": [
+        "DWS-034"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-24",
+      "type": "Ambiguity",
+      "description": "UI behaviour when the add-to-cart AJAX request fails or returns 500 was not observed, and the request URL pattern was not recorded in discovery.",
+      "impact": "Medium",
+      "mitigation": "Identify the request at implementation from network traffic; assert only absence of success and an unchanged cart; record any error UI.",
+      "scenarios": [
+        "DWS-037",
+        "DWS-038"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-25",
+      "type": "Ambiguity",
+      "description": "Duplicate submission (double-click) of Add to cart not observed.",
+      "impact": "Low",
+      "mitigation": "Assert internal consistency (header count equals row quantity) and record the count.",
+      "scenarios": [
+        "DWS-039"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-26",
+      "type": "Ambiguity",
+      "description": "Cart merge rule when the same product is in both guest and account carts is unknown (Q-NB3).",
+      "impact": "Medium",
+      "mitigation": "Merge scenario uses a product not already in the account cart.",
+      "scenarios": [
+        "DWS-051"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-27",
+      "type": "Ambiguity",
+      "description": "Wishlist \"Add to cart\" (move to cart) not observed; whether the item stays in the wishlist is unknown.",
+      "impact": "Low",
+      "mitigation": "Record on first run before asserting.",
+      "scenarios": [
+        "DWS-056"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-28",
+      "type": "Ambiguity",
+      "description": "Checkout \"Back\" link behaviour not observed.",
+      "impact": "Low",
+      "mitigation": "Record on first run before asserting.",
+      "scenarios": [
+        "DWS-062"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-29",
+      "type": "Assumption",
+      "description": "ASSUMPTION-01: existingUser keeps no saved addresses, no orders and 0 reward points (A2); orders are placed only as a guest (D5) and signed-in checkout never saves an address.",
+      "impact": "Low",
+      "mitigation": "Report a broken assumption instead of a product defect if the shared account gains data.",
+      "scenarios": [
+        "DWS-064"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-30",
+      "type": "Ambiguity",
+      "description": "Keyboard tab order on the login page not observed.",
+      "impact": "Low",
+      "mitigation": "Report-only; record the observed order.",
+      "scenarios": [
+        "DWS-068"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-31",
+      "type": "Ambiguity",
+      "description": "No WCAG target level specified; accessibility is report-only (D4).",
+      "impact": "Low",
+      "mitigation": "Ask for a target (e.g. WCAG 2.1 AA) before gating.",
+      "scenarios": [
+        "DWS-068",
+        "DWS-069",
+        "DWS-070"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-32",
+      "type": "Blocker",
+      "description": "@axe-core/playwright is not installed; automated axe scanning needs a new dependency.",
+      "impact": "Low",
+      "mitigation": "Approve adding the dependency, or keep the scan manual.",
+      "scenarios": [
+        "DWS-070"
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "R-33",
+      "type": "Risk",
+      "description": "Unsafe actions excluded from automation: successful registration, signed-in order placement or address save, profile/address/password form submission, forgot password, email a friend, contact us, newsletter, poll, reviews, any non-COD payment, brute-force login, duplicate Confirm submission, load testing.",
+      "impact": "High",
+      "mitigation": "Not catalogued as automated scenarios; reviewers reject tests that perform them.",
+      "scenarios": [],
+      "status": "Open"
+    },
+    {
+      "id": "R-34",
+      "type": "Risk",
+      "description": "Not covered (no observation or out of scope): Remember me persistence, valid coupons or gift cards, configurable product attribute validation, advanced search, compare list, signed-in steps after Billing, /orderdetails access from another session.",
+      "impact": "Medium",
+      "mitigation": "Add scenarios when behaviour is specified or safely observable.",
+      "scenarios": [],
+      "status": "Open"
+    }
+  ],
+  "executions": []
+}
