@@ -120,3 +120,49 @@ To run only this error scenario:
 
 Demo Web Shop artifacts are saved under `artifacts/demo-web-shop/` and its
 negative-only run under `artifacts/demo-web-shop-error/`.
+
+## URL-driven E2E automation agent (Claude Code)
+
+Give Claude Code an application URL and it explores the app, builds an Excel
+scenario catalogue, writes Page Object Model tests, runs them on Chromium,
+Firefox, and WebKit, fixes failures at the root cause, and reports the result.
+
+```text
+/e2e-agent https://example.com [flow to focus on] [--app my-app]
+```
+
+The orchestrator is `.claude/skills/e2e-agent/SKILL.md`. It coordinates ten
+subagents in `.claude/agents/`:
+
+| Subagent | Responsibility | Output |
+| --- | --- | --- |
+| application-explorer | Validate the URL, crawl safe pages, record observed behavior | `test-plans/<app>/discovery.md` |
+| requirement-analyst | Requirements, assumptions, gaps, clarification questions | `test-plans/<app>/requirements.md` |
+| scenario-designer | Risk-based scenario catalogue | `test-plans/<app>/scenarios.json` |
+| excel-test-analyst | Build and refresh the workbook | `test-plans/<app>/<app>-e2e-scenarios.xlsx` |
+| test-architect | POM, fixture, and data design | `test-plans/<app>/architecture.md` |
+| playwright-implementer | Page objects, fixtures, specs, fixes | `pages/`, `tests/`, `fixtures/`, `test-data/` |
+| test-executor | tsc, targeted, per-browser, and full-matrix runs; evidence | `artifacts/<app>/` |
+| failure-investigator | Root-cause classification from evidence | fix prescriptions |
+| quality-reviewer | Independent read-only review | Ready / Not ready verdict |
+| delivery-reporter | Final 15-section report | `test-plans/<app>/delivery-report.md` |
+
+Supporting tools:
+
+```powershell
+# Read-only discovery (no form submits, skips logout/delete-style links)
+node scripts/explore-app.mjs --url https://example.com --app my-app --max-pages 12
+
+# Scenario catalogue -> Excel (validate, merge results, build)
+node scripts/workbook.mjs validate --app my-app
+node scripts/workbook.mjs sync --app my-app
+node scripts/workbook.mjs build --app my-app
+
+# Run any app on all three browsers, prompt for secrets locally, refresh workbook
+.\scripts\run-e2e.ps1 -App my-app -BaseUrl https://example.com -SecretVars MY_APP_USER,MY_APP_PASSWORD
+```
+
+Test titles start with their scenario ID, for example
+`test('[MYA-001] signs in', ...)`. This links each Playwright result to its
+row in the workbook. The catalogue format is described in
+`.claude/skills/e2e-agent/scenario-schema.md`.

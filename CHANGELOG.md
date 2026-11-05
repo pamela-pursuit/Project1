@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-11-05
+
+### Added
+
+- URL-driven E2E automation agent: `/e2e-agent` orchestrator skill and ten
+  Claude Code subagents under `.claude/agents/`.
+- `scripts/explore-app.mjs` for read-only application discovery.
+- `scripts/workbook.mjs` to validate the scenario catalogue, merge Playwright
+  results, and build the five-sheet Excel workbook (exceljs).
+- `scripts/run-e2e.ps1`, a generic cross-browser runner with hidden secret
+  prompts and automatic workbook refresh.
+- Playwright JSON reporter output at `artifacts/<suite>/results.json`.
+
 ## 2026-11-04
 
 ### Changed
