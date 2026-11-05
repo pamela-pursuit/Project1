@@ -12,13 +12,7 @@
   `test-data/templates/`.
 - `.claude/settings.json` deny rules that keep Claude from reading or
   editing the credentials folder.
-- `-CredentialsFile` option on `scripts/run-e2e.ps1`.
-
-### Changed
-
-- E2E subagents now use the credential file instead of environment-variable
-  prompts.
-
+- `-AccountsFile` option on `scripts/run-e2e.ps1`.
 - URL-driven E2E automation agent: `/e2e-agent` orchestrator skill and ten
   Claude Code subagents under `.claude/agents/`.
 - `scripts/explore-app.mjs` for read-only application discovery.
@@ -27,6 +21,11 @@
 - `scripts/run-e2e.ps1`, a generic cross-browser runner with hidden secret
   prompts and automatic workbook refresh.
 - Playwright JSON reporter output at `artifacts/<suite>/results.json`.
+
+### Changed
+
+- E2E subagents now use the credential file instead of environment-variable
+  prompts.
 
 ## 2026-11-04
 

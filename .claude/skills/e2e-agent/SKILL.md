@@ -124,7 +124,7 @@ synced by OneDrive), the user sets `CREDENTIALS_FILE` before launching
 Claude Code, or passes it to the runner:
 
 ```powershell
-.\scripts\run-e2e.ps1 -App <app> -BaseUrl <url> -CredentialsFile D:\secure\credentials.xlsx
+.\scripts\run-e2e.ps1 -App <app> -BaseUrl <url> -AccountsFile D:\secure\credentials.xlsx
 ```
 
 ## Honesty
