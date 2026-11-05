@@ -11,7 +11,7 @@ The user keeps the accounts in one file, which is never committed:
 | `credentials/credentials.json` | local, git-ignored |
 | `credentials/credentials.xlsx` | local, git-ignored |
 
-Templates: `test-data/templates/credentials.example.json` and
+Templates: `templates/credentials.example.json` and
 `credentials.example.xlsx`.
 
 - **JSON:** `{ "<app>": { "<role>": { "email": "...", "password": "..." } } }`.
@@ -27,12 +27,12 @@ Templates: `test-data/templates/credentials.example.json` and
 - **Per-field overrides:** `E2E_<APP>_<ROLE>_<FIELD>`, for example
   `E2E_DEMO_WEB_SHOP_EXISTING_USER_PASSWORD`.
 
-Tests read accounts only through `test-data/credentials-store.cjs` in a
+Tests read accounts only through `lib/credentials-store.cjs` in a
 fixture:
 
 ```ts
 import { test as base } from '@playwright/test';
-import { getAccount, type Account } from '../test-data/credentials-store.cjs';
+import { getAccount, type Account } from '../lib/credentials-store.cjs';
 
 export const test = base.extend<{ existingUser: Account }>({
   existingUser: async ({}, use) => {

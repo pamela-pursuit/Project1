@@ -42,7 +42,7 @@ Write `test-plans/<app>/architecture.md` containing:
 3. **Fixtures:** the page-object fixtures and one account fixture per
    credential role (`existingUser`, `newUser`, ...), each calling
    `getAccount('<app>', '<role>', { required: [...] })` from
-   `test-data/credentials-store.cjs`. A missing role or field throws a
+   `lib/credentials-store.cjs`. A missing role or field throws a
    descriptive error, which fails the test rather than silently passing it.
    Use `test.skip(reason)` only for a scenario that is explicitly
    credential-optional. List each role and its required fields.

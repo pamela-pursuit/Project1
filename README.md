@@ -18,15 +18,28 @@ npx playwright install chromium firefox webkit
 /e2e-agent https://example.com [flow to focus on] [--app my-app]
 ```
 
-Each application gets its own folders:
+## Project structure
 
 ```text
-test-plans/<app>/     # discovery, requirements, scenarios.json, Excel workbook, reports
-pages/<app>/          # page objects
-tests/<app>/          # specs (titles start with [ID])
+.claude/
+  agents/               # the 10 E2E subagents
+  skills/e2e-agent/     # /e2e-agent orchestrator + scenario schema
+  skills/qa-playwright/ # shared QA guides (test design, POM, locators, credentials, reporting)
+  settings.json         # blocks Claude from reading credentials/
+lib/                    # shared runtime code (credentials-store)
+scripts/                # CLI tools: explore-app, workbook, credentials, run-e2e
+templates/              # credentials.example.json / .xlsx
+
+# Generated per application by the agent (empty until the first run)
+test-plans/<app>/       # discovery, requirements, architecture, scenarios.json, Excel workbook, delivery report
+pages/<app>/            # page objects
+tests/<app>/            # specs (titles start with [ID])
 fixtures/<app>.fixture.ts
-test-data/<app>.data.ts
-artifacts/<app>/      # HTML report, screenshots, traces, results.json (git-ignored)
+test-data/<app>.data.ts # non-secret test data
+
+# Local only (git-ignored)
+credentials/            # your credentials.json or credentials.xlsx
+artifacts/<app>/        # HTML report, screenshots, traces, results.json
 ```
 
 ## URL-driven E2E automation agent (Claude Code)
@@ -81,7 +94,7 @@ row in the workbook. The catalogue format is described in
 Put login, registration, and other accounts in **one** file. The agent and
 the tests extract them from there, and you never type them into chat.
 
-1. Copy a template from `test-data/templates/`:
+1. Copy a template from `templates/`:
    - `credentials.example.json` to `credentials/credentials.json`, or
    - `credentials.example.xlsx` to `credentials/credentials.xlsx`
 

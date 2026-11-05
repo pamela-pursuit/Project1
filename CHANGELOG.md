@@ -30,6 +30,13 @@
 - README, guides, and `.env.example` now describe the agent workflow instead
   of individual suites.
 
+### Changed (structure)
+
+- Moved the credential loader to `lib/` and the credential templates to
+  `templates/`. `test-data/` now holds only per-app test data.
+- Added placeholder folders (`pages/`, `tests/`, `fixtures/`, `test-data/`,
+  `test-plans/`) and documented the project structure in the README.
+
 ### Removed
 
 - Rahul Shetty and Tricentis Demo Web Shop test suites, page objects, and

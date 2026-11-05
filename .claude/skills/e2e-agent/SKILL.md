@@ -30,7 +30,7 @@ POM, locators, credentials, reporting). The scenario JSON contract is in
   and never ask for values in chat. If the app or a needed role or field is
   missing, tell the user exactly which entry to add, for example
   "add role `newUser` with `email`, `password` under `my-app`", and point
-  them to the templates in `test-data/templates/`.
+  them to the templates in `templates/`.
 
 ## Hand-off files (the contract between agents)
 
@@ -114,7 +114,7 @@ on a third-party site.
 ## Credentialed runs
 
 Tests load accounts from the credential file through
-`test-data/credentials-store.cjs`, so the agent runs credentialed suites
+`lib/credentials-store.cjs`, so the agent runs credentialed suites
 without prompts. Before Phase 3 and before every run, verify the roles the
 suite needs with `node scripts/credentials.mjs check --app <app> --require <role>:<field>,...` and stop with a precise request to the
 user if anything is missing.

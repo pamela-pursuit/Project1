@@ -41,7 +41,7 @@ credential roles available for this app (from the credential file).
    401/403 responses. Check the available roles with
    `node scripts/credentials.mjs check --app <app> --require <role>:<field>,...`.
    Probes that sign in load accounts with
-   `require('../../../../test-data/credentials-store.cjs').getAccount(app, role)`
+   `require('../../../../lib/credentials-store.cjs').getAccount(app, role)`
    (adjust the relative path, or use `createRequire`). Never read the
    credentials file, and never print account values or put them in
    discovery.md or screenshots of filled password fields. If authentication is

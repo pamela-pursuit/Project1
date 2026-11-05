@@ -2,7 +2,7 @@
 // Credential store helper. Prints MASKED values only.
 //
 //   node scripts/credentials.mjs check [--app <app>] [--require role:field,field ...]
-//   node scripts/credentials.mjs template [--out-dir test-data/templates]
+//   node scripts/credentials.mjs template [--out-dir templates]
 //
 // `check` exits 1 when no source exists, the app is missing, or a required
 // role/field is missing. Agents use it instead of reading the file.
@@ -10,7 +10,7 @@
 import ExcelJS from 'exceljs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import store from '../test-data/credentials-store.cjs';
+import store from '../lib/credentials-store.cjs';
 
 const { describeStore, getAccount, envOverrideName } = store;
 
@@ -42,7 +42,7 @@ async function check({ app, require }) {
   const { source, rows } = await describeStore();
   if (!source) {
     console.log('No credentials source. Create credentials/credentials.json or credentials/credentials.xlsx');
-    console.log('(templates: test-data/templates/), or set CREDENTIALS_FILE / CREDENTIALS_JSON.');
+    console.log('(templates: templates/), or set CREDENTIALS_FILE / CREDENTIALS_JSON.');
     return false;
   }
   console.log(`Source: ${source}`);
@@ -72,7 +72,7 @@ async function check({ app, require }) {
   return ok;
 }
 
-async function template({ outDir = path.join('test-data', 'templates') }) {
+async function template({ outDir = 'templates' }) {
   await mkdir(outDir, { recursive: true });
   const jsonFile = path.join(outDir, 'credentials.example.json');
   await writeFile(jsonFile, `${JSON.stringify(EXAMPLE, null, 2)}\n`);

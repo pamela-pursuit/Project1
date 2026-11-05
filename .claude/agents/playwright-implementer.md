@@ -33,7 +33,7 @@ For fixes, the failure-investigator's diagnosis.
   or fresh unique data, and runs alone and in any order on every browser.
 - **Accounts and secrets** are read only in `fixtures/<app>.fixture.ts` via
   `getAccount('<app>', '<role>', { required: [...] })` from
-  `test-data/credentials-store.cjs` (see `.claude/skills/qa-playwright/credentials.md`).
+  `lib/credentials-store.cjs` (see `.claude/skills/qa-playwright/credentials.md`).
   Never read the credentials file yourself. Never hard-code, log,
   `console.log`, or put account values in titles, annotations, or messages.
   Registration tests rely on `{timestamp}` or `{random}` placeholders in the
