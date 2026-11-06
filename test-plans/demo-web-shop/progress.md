@@ -41,3 +41,9 @@ Never touch the "14.1-inch Laptop" in the account cart. COD orders only as a gue
 | Date | Runs | Result |
 | --- | --- | --- |
 | 2026-11-06 | 2026-11-06_13-14-06 (guest, --workers=3), 2026-11-06_13-21-14 (account, --workers=1) | 190 passed, 0 failed, 14 skipped (Chromium-only by design); code unchanged since df75acb |
+
+## Scenario approval
+
+| Date | Decision | Scenarios |
+| --- | --- | --- |
+| 2026-11-06 | **Approved** by the user at the scenario review gate (after reviewing in Excel); no scenarios added | 70 (DWS-001 to DWS-070), recorded in scenarios.json `approval` |
