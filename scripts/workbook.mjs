@@ -381,7 +381,7 @@ const plain = (md) => String(md).replace(/\\\|/g, '|').replace(/\[([^\]]+)\]\([^
 function rowHeight(texts, widths) {
   let lines = 1;
   texts.forEach((t, i) => {
-    const perLine = Math.max(8, Math.floor((widths[i] ?? 20) * 0.95));
+    const perLine = Math.max(8, Math.floor((widths[i] ?? 20) * 1.08));
     const n = String(t ?? '').split('\n').reduce((sum, part) => sum + Math.max(1, Math.ceil(part.length / perLine)), 0);
     lines = Math.max(lines, n);
   });
@@ -420,7 +420,7 @@ function addDeliveryReportSheet(wb, app, data, md) {
   const byStatus = (st) => data.scenarios.filter((s) => (s.executionStatus ?? 'Not Run') === st).length;
 
   mergedRow(`E2E Delivery Report: ${app}`, { font: { bold: true, size: 18, color: { argb: COLORS.header } }, height: 30 });
-  mergedRow(`Generated ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC from scenarios.json and delivery-report.md. The summary below is computed live; the sections after it are the delivery report.`,
+  mergedRow(`Generated ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC from scenarios.json. The summary and "Not executed and why" are computed live from the latest results; the numbered sections after them are the delivery report.`,
     { font: { italic: true, color: { argb: 'FF595959' } } });
   ws.addRow([]);
 
@@ -434,7 +434,7 @@ function addDeliveryReportSheet(wb, app, data, md) {
       const n = (x) => st.filter((y) => y === x).length;
       return [`${b[0].toUpperCase()}${b.slice(1)}`, `${n('Passed')} passed, ${n('Failed')} failed, ${n('Flaky')} flaky, ${n('Not run')} not run; ${scope.automated.length - covered.length} out of scope by design (of ${scope.automated.length} automated)`];
     }),
-    ['Why counts differ', `${scope.limited.length} scenarios run on fewer browsers by design and ${scope.notAutomated.length} are not automated. See the Execution scope section below and the "Not Executed" sheet.`],
+    ['Why counts differ', `${scope.limited.length} scenarios run on fewer browsers by design and ${scope.notAutomated.length} are not automated. See "Not executed and why" below and the "Not Executed" sheet.`],
     ['Latest run', latestRun],
     ['Open risks', `${openRisks} of ${data.risks.length} (see "Risks and Assumptions")`]
   ];
@@ -455,6 +455,43 @@ function addDeliveryReportSheet(wb, app, data, md) {
       row.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: good ? COLORS.Passed : limited ? COLORS.Flaky : COLORS.Failed } };
     }
     row.height = rowHeight([v], [fullWidth - REPORT_COLS[0]]);
+  }
+  ws.addRow([]);
+
+  // ---- Not executed and why (compact, one row per scenario; full per-browser detail on "Not Executed") ----
+  const notRun = notExecutedRows(data, scope);
+  const possible = data.scenarios.length * BROWSERS.length;
+  const problems = notRun.filter((r) => !['Not automated', 'Out of scope by design'].includes(r.category));
+  mergedRow('Not executed and why', { font: { bold: true, size: 13, color: { argb: COLORS.headerText } }, fill: COLORS.header, height: 24 });
+  mergedRow(richText(
+    `**Why ${scope.automated.length} of ${scope.total} scenarios run:** ${scope.notAutomated.length} scenarios are not automated (listed below). ` +
+    `**Why ${scope.expectedExecutions} tests, not ${possible}:** ${possible} possible (${scope.total} scenarios x ${BROWSERS.length} browsers) ` +
+    `- ${scope.notAutomated.length * BROWSERS.length} not automated - ${possible - scope.notAutomated.length * BROWSERS.length - scope.expectedExecutions} out of scope by design ` +
+    `= **${scope.expectedExecutions}** (${BROWSERS.map((b) => `${b} ${scope.inScope(b).length}`).join(', ')}). ` +
+    `**Problems in the latest results:** ${problems.length ? problems.map((p) => `${p.id} on ${p.browser} (${p.category})`).join(', ') : 'none'}. ` +
+    'Per-browser detail and filters: sheet "Not Executed".'));
+  const grouped = new Map();
+  for (const r of notRun) {
+    const key = `${r.id}|${r.category}`;
+    const g = grouped.get(key) ?? { ...r, browsers: [] };
+    g.browsers.push(r.browser);
+    grouped.set(key, g);
+  }
+  const neHeader = ws.addRow(['Scenario', 'User Journey', 'Priority', 'Category', 'Not run on', 'Reason', '', 'Action']);
+  ws.mergeCells(neHeader.number, 6, neHeader.number, 7);
+  neHeader.eachCell((c) => { c.font = { bold: true, color: { argb: COLORS.headerText } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.header } }; });
+  for (const g of grouped.values()) {
+    const row = ws.addRow([g.id, g.journey, g.priority, g.category, g.browsers.join(', '), g.reason, '', g.action]);
+    ws.mergeCells(row.number, 6, row.number, 7);
+    for (let c = 1; c <= REPORT_WIDTH; c += 1) {
+      const cell = row.getCell(c);
+      cell.alignment = { wrapText: true, vertical: 'top' };
+      cell.border = { top: border, left: border, bottom: border, right: border };
+    }
+    tint(row.getCell(3));
+    row.getCell(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NOT_EXECUTED_FILL[g.category] ?? COLORS.band } };
+    row.height = rowHeight([g.id, g.journey, g.priority, g.category, g.browsers.join(', '), g.reason, g.action],
+      [REPORT_COLS[0], REPORT_COLS[1], REPORT_COLS[2], REPORT_COLS[3], REPORT_COLS[4], REPORT_COLS[5] + REPORT_COLS[6], REPORT_COLS[7]]);
   }
   ws.addRow([]);
 
@@ -727,6 +764,8 @@ async function build(app, data) {
   // First sheet: the delivery report (live summary + the stored Markdown report rendered).
   // The delivery report text is stored in scenarios.json ("deliveryReport", set by the `report` command).
   if (data.deliveryReport) addDeliveryReportSheet(wb, app, data, data.deliveryReport);
+  // Second sheet: full accounting of everything not executed or not passing.
+  addNotExecutedSheet(wb, data, executionScope(data));
 
   const scenarioHeaders = [
     'Scenario ID', 'Feature', 'User Journey', 'Test Type', 'Priority', 'Preconditions', 'Test Data', 'Steps',
@@ -826,7 +865,6 @@ async function build(app, data) {
   }
   for (let r = 2; r <= 4; r += 1) cov.getRow(r).getCell(AUTOMATION.length + 3).numFmt = '0%';
 
-  addNotExecutedSheet(wb, data, scope);
 
   const ex = wb.addWorksheet('Execution Results');
   const executions = [...data.executions].reverse();

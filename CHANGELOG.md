@@ -10,7 +10,8 @@
   rendered as formatted sections and tables. It is rebuilt by
   `workbook.mjs build`.
 
-- A "Not Executed" workbook sheet (it replaces "Scope & Exclusions"). It
+- A "Not Executed" workbook sheet, the second tab (it replaces "Scope & Exclusions"). The
+  Delivery Report sheet also gets a "Not executed and why" section under its summary. It
   shows why N of M scenarios run, the scenarios x browsers arithmetic down to
   the executed count, per-browser counts, problems in the latest results,
   and one row per scenario/browser that is not automated, out of scope by
