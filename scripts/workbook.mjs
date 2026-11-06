@@ -7,6 +7,9 @@
 //             runs/<runId>/results.json) with screenshot links
 //             into the catalogue's execution history and statuses
 //   build     writes test-plans/<app>/<app>-e2e-scenarios.xlsx
+//   review    prints the scenario review summary for the user (and what changed since the
+//             last approval); the orchestrator shows it before implementing or running
+//   approve   records the user's approval of the current scenarios (date + fingerprint)
 //   scope     prints the execution scope as Markdown: why N of M scenarios run, what is
 //             not automated, and which scenarios are browser-limited (with reasons)
 //
@@ -14,6 +17,7 @@
 // Schema: .claude/skills/e2e-agent/scenario-schema.md
 
 import ExcelJS from 'exceljs';
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -39,8 +43,8 @@ function parseArgs(argv) {
     else if (rest[i] === '--print') args.print = true;
     else throw new Error(`Unknown argument: ${rest[i]}`);
   }
-  if (!['validate', 'sync', 'build', 'scope', 'report', 'all'].includes(command) || !args.app) {
-    throw new Error('Usage: node scripts/workbook.mjs <validate|sync|build|scope|report|all> --app <name> [--from report.md | --print]');
+  if (!['validate', 'sync', 'build', 'scope', 'report', 'review', 'approve', 'all'].includes(command) || !args.app) {
+    throw new Error('Usage: node scripts/workbook.mjs <validate|sync|build|scope|report|review|approve|all> --app <name> [--from report.md | --print]');
   }
   if (command === 'report' && !args.from && !args.print) {
     throw new Error('report needs --from <file.md> (store the delivery report and rebuild) or --print (output the stored report)');
@@ -84,6 +88,66 @@ async function collectTestTitles(dir) {
     }
   }
   return found;
+}
+
+// ---------- Scenario approval (user confirms the catalogue before implementation and runs) ----------
+
+// Fields that define WHAT is tested. Status fields (automation/execution) are excluded so
+// implementing or running a scenario does not invalidate its approval.
+function scenarioFingerprint(s) {
+  const def = {
+    id: s.id, feature: s.feature, journey: s.journey, testType: s.testType, priority: s.priority,
+    preconditions: s.preconditions ?? '', testData: s.testData ?? '', steps: s.steps ?? [],
+    expected: s.expected, browsers: coverageOf(s)
+  };
+  return createHash('sha256').update(JSON.stringify(def)).digest('hex').slice(0, 16);
+}
+
+function approvalDiff(data) {
+  const approved = data.approval?.scenarios ?? {};
+  const current = Object.fromEntries(data.scenarios.map((s) => [s.id, scenarioFingerprint(s)]));
+  return {
+    approved: !!data.approval,
+    added: Object.keys(current).filter((id) => !(id in approved)),
+    changed: Object.keys(current).filter((id) => id in approved && approved[id] !== current[id]),
+    removed: Object.keys(approved).filter((id) => !(id in current))
+  };
+}
+
+const approvalPending = (d) => !d.approved || d.added.length || d.changed.length || d.removed.length;
+
+function printReview(data) {
+  const scope = executionScope(data);
+  const diff = approvalDiff(data);
+  const by = (key) => data.scenarios.reduce((m, s) => m.set(s[key], (m.get(s[key]) ?? 0) + 1), new Map());
+  const lines = [
+    '## Scenario review',
+    '',
+    `- **${data.scenarios.length} scenarios**: ${[...by('priority')].map(([k, v]) => `${v} ${k}`).join(', ')}.`,
+    `- **Automation:** ${scope.automated.length} automated, ${data.scenarios.filter((s) => s.automationStatus === 'Planned').length} planned (not yet implemented), ${scope.notAutomated.filter((s) => s.automationStatus !== 'Planned').length} not automated (${scope.notAutomated.filter((s) => s.automationStatus !== 'Planned').map((s) => `${s.id} ${s.automationStatus}`).join(', ') || 'none'}).`,
+    `- **Browsers:** a full run executes ${scope.expectedExecutions} tests (${BROWSERS.map((b) => `${b} ${scope.inScope(b).length}`).join(', ')}); ${scope.limited.length} scenarios run on fewer browsers by design.`,
+    `- **Approval:** ${!diff.approved ? 'NOT YET APPROVED' : `approved ${data.approval.approvedAt} (${Object.keys(data.approval.scenarios).length} scenarios)`}` +
+      (diff.approved ? `; since then ${diff.added.length} added, ${diff.changed.length} changed, ${diff.removed.length} removed` : '') + '.',
+    ''
+  ];
+  if (diff.approved && (diff.added.length || diff.changed.length || diff.removed.length)) {
+    lines.push('### Changes awaiting approval', '');
+    for (const id of diff.added) { const s = data.scenarios.find((x) => x.id === id); lines.push(`- **Added** ${id} (${s.priority}) ${s.journey}`); }
+    for (const id of diff.changed) { const s = data.scenarios.find((x) => x.id === id); lines.push(`- **Changed** ${id} (${s.priority}) ${s.journey}`); }
+    for (const id of diff.removed) lines.push(`- **Removed** ${id}`);
+    lines.push('');
+  }
+  lines.push('### Scenarios by feature', '', '| Feature | Scenarios | High | IDs |', '| --- | --- | --- | --- |');
+  for (const [feature, n] of by('feature')) {
+    const list = data.scenarios.filter((s) => s.feature === feature);
+    lines.push(`| ${feature} | ${n} | ${list.filter((s) => s.priority === 'High').length} | ${list.map((s) => s.id).join(', ')} |`);
+  }
+  lines.push('', '### High-priority scenarios', '', '| ID | User journey | Type | Browsers |', '| --- | --- | --- | --- |');
+  for (const s of data.scenarios.filter((x) => x.priority === 'High')) {
+    lines.push(`| ${s.id} | ${s.journey} | ${s.testType} | ${coverageOf(s).length === BROWSERS.length ? 'all' : coverageOf(s).join(', ')} |`);
+  }
+  lines.push('', 'Full details (steps, expected results, test data): sheet "Scenario Catalogue" in the workbook.');
+  console.log(lines.join(String.fromCharCode(10)));
 }
 
 async function validate(app, data) {
@@ -134,6 +198,12 @@ async function validate(app, data) {
   }
   for (const [id, files] of titles) if (!ids.has(id)) errors.push(`${files[0]}: test tag [${id}] has no catalogue scenario`);
 
+  const diff = approvalDiff(data);
+  if (approvalPending(diff)) {
+    warnings.push(!diff.approved
+      ? 'scenarios are not approved by the user yet (run the review gate, then `workbook.mjs approve`)'
+      : `scenarios changed since user approval (${diff.added.length} added, ${diff.changed.length} changed, ${diff.removed.length} removed): ${[...diff.added, ...diff.changed, ...diff.removed].join(', ')}`);
+  }
   for (const w of warnings) console.log(`WARN  ${w}`);
   for (const e of errors) console.log(`ERROR ${e}`);
   console.log(`validate: ${data.scenarios.length} scenarios, ${errors.length} errors, ${warnings.length} warnings`);
@@ -912,6 +982,18 @@ async function main() {
   }
   if (command === 'build' || command === 'all') await build(app, data);
   if (command === 'scope') printScope(data);
+  if (command === 'review') {
+    printReview(data);
+    if (approvalPending(approvalDiff(data))) process.exitCode = 3; // 3 = user approval needed
+  }
+  if (command === 'approve') {
+    data.approval = {
+      approvedAt: new Date().toISOString(),
+      scenarios: Object.fromEntries(data.scenarios.map((s) => [s.id, scenarioFingerprint(s)]))
+    };
+    await saveCatalogue(app, data);
+    console.log(`approve: recorded user approval of ${data.scenarios.length} scenarios at ${data.approval.approvedAt}`);
+  }
   if (command === 'report') {
     if (args.from) {
       // Store the Markdown delivery report in the catalogue; the workbook's first sheet is rendered from it.

@@ -14,6 +14,18 @@ Shared conventions live in `.claude/skills/qa-playwright/` (test design,
 POM, locators, credentials, reporting). The scenario JSON contract is in
 [scenario-schema.md](./scenario-schema.md).
 
+## Starting on an app that already has a suite
+
+If `test-plans/<app>/progress.md` exists, do **not** restart Phase 0. Read
+progress.md, run `review`, and ask the user with **AskUserQuestion** what to
+do:
+- **Run the suite** (Recommended): go to "Before every test run".
+- **Add or change scenarios**: go to the scenario review gate (step 6b),
+  then Phase 3 for the new or changed IDs, then the run confirmation.
+- **Work on next steps**: from the Delivery Report sheet's recommendations.
+- **Start over**: Phase 0. Warn that this replaces the existing plans and
+  tests.
+
 ## Phase 0: Intake (always first, one step at a time)
 
 ### Step 1: Ask for the URL
@@ -147,11 +159,55 @@ brief is all the context it gets.
 5. **scenario-designer:** writes scenarios.json.
 6. **excel-test-analyst:** `validate` then `build`. This produces the
    workbook **before** any test code exists.
+6b. **Scenario review gate (user, mandatory).** Before any code is written:
+    1. Run `node scripts/workbook.mjs review --app <app>` and show the user
+       the output: counts, scenarios by feature, the High-priority list, what
+       is not automated, and browser limits. Link the workbook's "Scenario
+       Catalogue" sheet for full steps and expected results.
+    2. Use **AskUserQuestion**:
+       *"Do you approve these N scenarios for <app>?"*
+       - **Approve** (Recommended): proceed with these scenarios.
+       - **Add scenarios**: the user describes them in their own words.
+       - **Change or remove scenarios**: the user names the IDs and the change.
+       - **Review in Excel first**: wait for the user to come back.
+       Then ask: *"Do you want to add more scenarios?"* (Yes / No). If the
+       user picks "Approve" and also says yes, treat it as "Add scenarios".
+    3. **Adding or changing:** the user describes the scenario in chat (what
+       to do, what should happen, priority if known). Never ask them to edit
+       the `.xlsx`, because it is regenerated. Send the request to the
+       **scenario-designer** with the user's exact words. It adds
+       `DWS-NNN`-style IDs with `requirementRef: "USER-<date>"` and a risks
+       entry for any unobserved behaviour. If the behaviour has never been
+       observed, run the **application-explorer** first to observe it, and
+       never invent expected results. Then `validate`, `build`, and repeat
+       the gate.
+    4. Only when the user approves: `node scripts/workbook.mjs approve --app <app>`.
+       This records the approval (date and a fingerprint of every scenario) in
+       scenarios.json. Record it in progress.md too.
+    **Do not start Phase 3 without approval.** `review` exits with code 3 and
+    `validate` warns whenever scenarios were added or changed after the last
+    approval.
 
 ### Phase 3: Implementation
 7. **test-architect:** writes architecture.md.
 8. **playwright-implementer:** writes the code. `tsc` passes and every
    automation candidate has a `[ID]`-tagged test.
+
+### Before every test run (including re-runs): confirm the scenarios
+1. Run `node scripts/workbook.mjs review --app <app>` and the credentials
+   check.
+2. If `review` exits with 3 (new or changed scenarios not approved), run the
+   **scenario review gate** (Phase 2, step 6b) first.
+3. Otherwise show the short summary: N scenarios, the tests per browser, the
+   not-automated and browser-limited counts, and the side effects of the
+   run (for example "places 1 guest COD demo order"). Then use
+   **AskUserQuestion**: *"Run these N scenarios now?"*
+   - **Run all** (Recommended)
+   - **Add scenarios first**: go to the gate (step 6b), then implement the
+     new scenarios (Phase 3, only for the new IDs) before running.
+   - **Run a subset**: the user names features or IDs (use `--grep`).
+   - **Not now**
+4. Never start a run the user has not confirmed in this conversation.
 
 ### Phase 4: Validation loop
 9. **test-executor:** runs tsc, then targeted, then per-browser, then the

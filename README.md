@@ -45,6 +45,34 @@ You can also prepare the credential file yourself:
 node scripts/credentials.mjs init --app my-app --format xlsx --role existingUser:email,password --role newUser:firstName,lastName,email,password
 ```
 
+## How the agent works (flow and steps)
+
+Steps marked **(you)** wait for your answer. The agent never writes code or
+runs tests without your confirmation.
+
+| # | Phase | Who | What happens | Output |
+| --- | --- | --- | --- | --- |
+| 1 | Intake | **(you)** + orchestrator | Asks for the URL, finds the login and registration forms, asks which accounts and which file format, and creates the credentials file for you to fill | `credentials/credentials.xlsx`, `intake.md` |
+| 2 | Discovery | application-explorer | Crawls safe pages and probes flows (also signed in); records only observed behaviour | `discovery.md` |
+| 3 | Requirements | requirement-analyst, **(you)** | Builds the requirement list and asks you the blocking questions (for example what tests may change, or whether orders may be placed) | `requirements.md` |
+| 4 | Scenario design | scenario-designer, excel-test-analyst | Writes the risk-based scenarios and builds the Excel workbook, before any code | `scenarios.json`, workbook |
+| 5 | **Scenario review** | **(you)** | Shows the scenarios (by feature, High priority, not automated, browser limits). You **approve**, **add**, or **change** scenarios; it then asks whether you want to add more. New ones are designed (and observed first if needed), and the review repeats until you approve | approval recorded in `scenarios.json` |
+| 6 | Implementation | test-architect, playwright-implementer | Designs and writes page objects, fixtures and specs (type-checked, smoke-tested) | `pages/`, `fixtures/`, `tests/` |
+| 7 | **Run confirmation** | **(you)** | Before every run (also re-runs): shows what will run and any side effects (for example one demo order). You choose run all, add scenarios first, run a subset, or not now | |
+| 8 | Execution and fixes | test-executor, failure-investigator, playwright-implementer | Runs Chromium, Firefox and WebKit, diagnoses failures from evidence, fixes root causes, re-runs (max 3 iterations per failure) | `artifacts/<app>/runs/<timestamp>/`, workbook results |
+| 9 | Review and delivery | quality-reviewer, delivery-reporter | Independent review (must be Ready), then the delivery report; commit and push | workbook "Delivery Report" and "Not Executed" sheets |
+
+Running `/e2e-agent` again on an app that already has a suite skips intake
+and asks what to do: run the suite, add or change scenarios, work on next
+steps, or start over.
+
+Approval commands (used by the agent):
+
+```powershell
+node scripts/workbook.mjs review  --app my-app   # summary + changes since approval (exit 3 = approval needed)
+node scripts/workbook.mjs approve --app my-app   # record your approval
+```
+
 ## Project structure
 
 ```text

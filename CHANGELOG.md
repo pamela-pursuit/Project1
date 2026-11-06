@@ -4,6 +4,18 @@
 
 ### Added
 
+- A scenario review gate. After designing scenarios, the agent shows them
+  (`workbook.mjs review`), asks you to approve, add, or change them, and asks
+  whether to add more. It records approval (`workbook.mjs approve`, with a
+  fingerprint per scenario) and does not implement before approval. `review`
+  exits with 3 and `validate` warns when scenarios change after approval.
+- A run confirmation before every test run, including re-runs: what will
+  run, its side effects, and options to run all, add scenarios first, run a
+  subset, or not now.
+- A re-entry menu when `/e2e-agent` is used on an app that already has a
+  suite.
+- README section "How the agent works (flow and steps)".
+
 - A "Delivery Report" sheet, the first sheet of each app's workbook. It holds
   a live summary dashboard (verdict, scenarios, results per browser with
   out-of-scope counts, latest run, open risks) and the delivery-report.md

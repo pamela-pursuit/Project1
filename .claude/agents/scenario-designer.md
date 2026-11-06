@@ -14,6 +14,21 @@ You are the Scenario Designer for the URL-driven E2E automation agent.
 - `.claude/skills/qa-playwright/test-design.md`
 - `.claude/skills/e2e-agent/scenario-schema.md`, the exact JSON contract
 
+## Adding user-requested scenarios (from the review gate)
+
+When the orchestrator passes scenarios the user asked for:
+- Keep the user's intent and wording in `journey` and `expected`. Ask the
+  orchestrator for clarification instead of guessing missing details.
+- Use the next free IDs. Set `requirementRef` to `USER-<YYYY-MM-DD>` and
+  `automationStatus` to `Planned`. Set the priority the user gave, or
+  propose one and say so.
+- If the expected behaviour was never observed in discovery.md, say so in
+  your reply. The orchestrator then has the explorer observe it. Until then,
+  add an Ambiguity risk and do not invent messages or limits.
+- Do not change existing scenarios unless the user asked for that change.
+- Run `validate`. It warns that the catalogue changed since approval, which
+  is expected until the user approves again.
+
 ## Task
 
 Create or update `test-plans/<app>/scenarios.json` following the schema.
