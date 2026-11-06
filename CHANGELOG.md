@@ -10,6 +10,13 @@
   rendered as formatted sections and tables. It is rebuilt by
   `workbook.mjs build`.
 
+- A "Not Executed" workbook sheet (it replaces "Scope & Exclusions"). It
+  shows why N of M scenarios run, the scenarios x browsers arithmetic down to
+  the executed count, per-browser counts, problems in the latest results,
+  and one row per scenario/browser that is not automated, out of scope by
+  design, failed, flaky, or not run, with reason, coverage elsewhere and
+  action.
+
 ### Changed
 
 - The delivery report is no longer kept as `test-plans/<app>/delivery-report.md`.

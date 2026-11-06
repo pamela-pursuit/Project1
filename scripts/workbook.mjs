@@ -381,7 +381,7 @@ const plain = (md) => String(md).replace(/\\\|/g, '|').replace(/\[([^\]]+)\]\([^
 function rowHeight(texts, widths) {
   let lines = 1;
   texts.forEach((t, i) => {
-    const perLine = Math.max(8, Math.floor((widths[i] ?? 20) * 1.15));
+    const perLine = Math.max(8, Math.floor((widths[i] ?? 20) * 0.95));
     const n = String(t ?? '').split('\n').reduce((sum, part) => sum + Math.max(1, Math.ceil(part.length / perLine)), 0);
     lines = Math.max(lines, n);
   });
@@ -434,7 +434,7 @@ function addDeliveryReportSheet(wb, app, data, md) {
       const n = (x) => st.filter((y) => y === x).length;
       return [`${b[0].toUpperCase()}${b.slice(1)}`, `${n('Passed')} passed, ${n('Failed')} failed, ${n('Flaky')} flaky, ${n('Not run')} not run; ${scope.automated.length - covered.length} out of scope by design (of ${scope.automated.length} automated)`];
     }),
-    ['Why counts differ', `${scope.limited.length} scenarios run on fewer browsers by design and ${scope.notAutomated.length} are not automated. See the Execution scope section below and the "Scope & Exclusions" sheet.`],
+    ['Why counts differ', `${scope.limited.length} scenarios run on fewer browsers by design and ${scope.notAutomated.length} are not automated. See the Execution scope section below and the "Not Executed" sheet.`],
     ['Latest run', latestRun],
     ['Open risks', `${openRisks} of ${data.risks.length} (see "Risks and Assumptions")`]
   ];
@@ -555,6 +555,169 @@ function addDeliveryReportSheet(wb, app, data, md) {
   return ws;
 }
 
+// ---------- "Not Executed" sheet: full accounting of every scenario x browser that did not run or did not pass ----------
+
+const NOT_EXECUTED_FILL = {
+  'Not automated': 'FFD9D2E9',
+  'Out of scope by design': 'FFEDEDED',
+  'Failed in latest run': COLORS.Failed,
+  'Flaky in latest run': COLORS.Flaky,
+  'Skipped (should have run)': COLORS.Failed,
+  'Never run (should have run)': COLORS.Failed
+};
+
+// Every (scenario, browser) pair that is not an executed Passed result, with category, reason and action.
+function notExecutedRows(data, scope) {
+  const rows = [];
+  for (const s of data.scenarios) {
+    const coverage = coverageOf(s);
+    const latest = s.automationStatus === 'Automated' ? latestPerBrowser(s, data.executions) : new Map();
+    for (const b of BROWSERS) {
+      const base = { id: s.id, journey: s.journey, priority: s.priority, browser: b, ref: s.requirementRef ?? '' };
+      if (s.automationStatus !== 'Automated') {
+        rows.push({
+          ...base,
+          category: 'Not automated',
+          detail: s.automationStatus,
+          reason: s.failureNotes || '(no reason recorded)',
+          coverage: 'None',
+          action: s.automationStatus === 'Blocked' ? 'Remove the blocker described in the reason, then automate'
+            : s.automationStatus === 'Manual' ? 'Run manually, or automate once the missing dependency is approved'
+              : s.automationStatus === 'Planned' ? 'Implement the test'
+                : 'Run manually; automation is not feasible'
+        });
+      } else if (!coverage.includes(b)) {
+        rows.push({
+          ...base,
+          category: 'Out of scope by design',
+          detail: `Runs on ${coverage.join(', ')} only`,
+          reason: s.scopeReason || '(no scopeReason recorded)',
+          coverage: `Runs on ${coverage.join(', ')}`,
+          action: 'None: intentional, not a failure'
+        });
+      } else {
+        const r = latest.get(b);
+        const status = r?.status;
+        if (status === 'Passed') continue;
+        const category = !r ? 'Never run (should have run)'
+          : status === 'Failed' ? 'Failed in latest run'
+            : status === 'Flaky' ? 'Flaky in latest run'
+              : 'Skipped (should have run)';
+        rows.push({
+          ...base,
+          category,
+          detail: r ? `${status} on ${r.runAt}` : 'No result recorded',
+          reason: r?.error || (r ? 'Skipped although the browser is in this scenario\'s coverage' : 'Not executed in any synced run'),
+          coverage: '',
+          action: !r ? 'Run the suite and sync the workbook'
+            : status === 'Failed' ? 'Investigate the failure (screenshot link in "Execution Results")'
+              : status === 'Flaky' ? 'Investigate the instability; it passed only on retry'
+                : 'Check why it was skipped (see the run\'s summary.md "Not run in this run")'
+        });
+      }
+    }
+  }
+  return rows;
+}
+
+function addNotExecutedSheet(wb, data, scope) {
+  const ws = wb.addWorksheet('Not Executed', { properties: { tabColor: { argb: 'FF7030A0' } } });
+  const widths = [12, 38, 10, 11, 28, 26, 70, 30, 36, 14];
+  ws.columns = widths.map((width) => ({ width }));
+  ws.views = [{ showGridLines: false }];
+  const span = widths.length;
+  const fullWidth = widths.reduce((a, b) => a + b, 0);
+  const border = { style: 'thin', color: { argb: COLORS.border } };
+  const rows = notExecutedRows(data, scope);
+  const count = (c) => rows.filter((r) => r.category === c).length;
+  const problems = rows.filter((r) => !['Not automated', 'Out of scope by design'].includes(r.category));
+  const possible = data.scenarios.length * BROWSERS.length;
+  const notAutomatedPairs = scope.notAutomated.length * BROWSERS.length;
+  const outOfScopePairs = scope.limited.reduce((n, s) => n + (BROWSERS.length - coverageOf(s).length), 0);
+
+  const text = (value, font = {}, fill) => {
+    const row = ws.addRow([]);
+    ws.mergeCells(row.number, 1, row.number, span);
+    const cell = row.getCell(1);
+    cell.value = value;
+    cell.font = font;
+    cell.alignment = { wrapText: true, vertical: 'top' };
+    if (fill) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
+    row.height = rowHeight([value], [fullWidth]);
+  };
+  const band = (value) => text(value, { bold: true, size: 12, color: { argb: COLORS.headerText } }, COLORS.header);
+
+  text('Not executed, out of scope and unable to execute', { bold: true, size: 16, color: { argb: COLORS.header } });
+  text('Every scenario/browser combination that is not an executed, passing test, and why. Rebuilt from the catalogue and the latest results on every workbook build.',
+    { italic: true, color: { argb: 'FF595959' } });
+  ws.addRow([]);
+
+  band(`Why ${scope.automated.length} of ${scope.total} scenarios run`);
+  text(`${scope.total} scenarios are in the catalogue. ${scope.automated.length} are automated and executed. ${scope.notAutomated.length} are not automated: ` +
+    (scope.notAutomated.map((s) => `${s.id} (${s.automationStatus}): ${firstSentence(s.failureNotes)}`).join(' ') || 'none.'));
+  ws.addRow([]);
+
+  band(`Why a full run is ${scope.expectedExecutions} tests, not ${possible} (${scope.total} scenarios x ${BROWSERS.length} browsers)`);
+  const math = [
+    ['Possible tests', `${scope.total} scenarios x ${BROWSERS.length} browsers`, possible],
+    ['minus not automated', `${scope.notAutomated.length} scenarios x ${BROWSERS.length} browsers`, -notAutomatedPairs],
+    ['minus out of scope by design', `${scope.limited.length} scenarios that run on fewer browsers`, -outOfScopePairs],
+    ['= Executed per full run', BROWSERS.map((b) => `${b} ${scope.inScope(b).length}`).join(', '), scope.expectedExecutions]
+  ];
+  const mh = ws.addRow(['Step', '', 'Count']);
+  ws.mergeCells(mh.number, 1, mh.number, 2);
+  ws.mergeCells(mh.number, 3, mh.number, span);
+  for (const [label, how, n] of math) {
+    const row = ws.addRow([label, '', `${n}   (${how})`]);
+    ws.mergeCells(row.number, 1, row.number, 2);
+    ws.mergeCells(row.number, 3, row.number, span);
+    row.getCell(1).font = { bold: label.startsWith('=') };
+    row.getCell(3).font = { bold: label.startsWith('=') };
+    for (let c = 1; c <= span; c += 1) row.getCell(c).border = { top: border, left: border, bottom: border, right: border };
+  }
+  mh.eachCell((c) => { c.font = { bold: true, color: { argb: COLORS.headerText } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.header } }; });
+  ws.addRow([]);
+
+  band('Per browser');
+  const bh = ws.addRow(['Browser', '', 'Executed', 'Passed', 'Not passing', 'Not automated', 'Out of scope by design', 'Total scenarios']);
+  ws.mergeCells(bh.number, 1, bh.number, 2);
+  bh.eachCell((c) => { c.font = { bold: true, color: { argb: COLORS.headerText } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.header } }; c.alignment = { wrapText: true }; });
+  for (const b of BROWSERS) {
+    const inScope = scope.inScope(b);
+    const passed = inScope.filter((s) => latestPerBrowser(s, data.executions).get(b)?.status === 'Passed').length;
+    const row = ws.addRow([b, '', inScope.length, passed, inScope.length - passed, scope.notAutomated.length, scope.automated.length - inScope.length, scope.total]);
+    ws.mergeCells(row.number, 1, row.number, 2);
+    for (let c = 1; c <= 8; c += 1) row.getCell(c).border = { top: border, left: border, bottom: border, right: border };
+    if (inScope.length - passed) row.getCell(5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.Failed } };
+  }
+  ws.addRow([]);
+
+  band('Problems in the latest results (failed, flaky, or should have run but did not)');
+  text(problems.length
+    ? `${problems.length} problem(s): ${problems.map((p) => `${p.id} on ${p.browser} (${p.category})`).join(', ')}. Details are in the table below.`
+    : 'None. Every automated scenario passed on every browser in its coverage in the latest results.',
+  { bold: true, color: { argb: problems.length ? 'FF9C0006' : 'FF006100' } }, problems.length ? COLORS.Failed : COLORS.Passed);
+  ws.addRow([]);
+
+  band(`Every scenario/browser not executed or not passing (${rows.length} rows: ${count('Not automated')} not automated, ${count('Out of scope by design')} out of scope by design, ${problems.length} problems)`);
+  const header = ['Scenario ID', 'User Journey', 'Priority', 'Browser', 'Category', 'Detail', 'Reason', 'Covered elsewhere', 'Action', 'Requirement'];
+  const hr = ws.addRow(header);
+  hr.eachCell((c) => { c.font = { bold: true, color: { argb: COLORS.headerText } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.header } }; c.alignment = { wrapText: true, vertical: 'middle' }; });
+  const order = ['Failed in latest run', 'Flaky in latest run', 'Skipped (should have run)', 'Never run (should have run)', 'Not automated', 'Out of scope by design'];
+  rows.sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category) || a.id.localeCompare(b.id) || BROWSERS.indexOf(a.browser) - BROWSERS.indexOf(b.browser));
+  const tableStart = hr.number;
+  for (const r of rows) {
+    const values = [r.id, r.journey, r.priority, r.browser, r.category, r.detail, r.reason, r.coverage, r.action, r.ref];
+    const row = ws.addRow(values);
+    row.eachCell({ includeEmpty: true }, (c) => { c.alignment = { wrapText: true, vertical: 'top' }; c.border = { top: border, left: border, bottom: border, right: border }; });
+    tint(row.getCell(3));
+    row.getCell(5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NOT_EXECUTED_FILL[r.category] ?? COLORS.band } };
+    row.height = rowHeight(values, widths);
+  }
+  ws.autoFilter = { from: { row: tableStart, column: 1 }, to: { row: tableStart, column: span } };
+  return ws;
+}
+
 async function build(app, data) {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'E2E automation agent';
@@ -626,7 +789,7 @@ async function build(app, data) {
     cov.addRow([f, count((s) => s.feature === f), count((s) => s.feature === f && s.priority === 'High'), count((s) => s.feature === f && s.automationStatus === 'Automated')]);
   }
   cov.addRow([]);
-  // Execution scope: explains why "N of M" scenarios run and why browsers differ (see sheet "Scope & Exclusions").
+  // Execution scope: explains why "N of M" scenarios run and why browsers differ (see sheet "Not Executed").
   const scope = executionScope(data);
   cov.addRow(['Execution scope', 'Count', 'Details']);
   const scopeHeaderRow = cov.rowCount;
@@ -663,15 +826,7 @@ async function build(app, data) {
   }
   for (let r = 2; r <= 4; r += 1) cov.getRow(r).getCell(AUTOMATION.length + 3).numFmt = '0%';
 
-  // Every scenario that is not run on all three browsers, with the reason.
-  const exc = wb.addWorksheet('Scope & Exclusions');
-  addTable(exc, ['Scenario ID', 'User Journey', 'Priority', 'Exclusion', 'Runs on', 'Not run on', 'Reason', 'Requirement Reference'], [
-    ...scope.notAutomated.map((s) => [s.id, s.journey, s.priority, `Not automated (${s.automationStatus})`, 'None', BROWSERS.join(', '),
-      s.failureNotes ?? '', s.requirementRef ?? '']),
-    ...scope.limited.map((s) => [s.id, s.journey, s.priority, 'Browser-limited (by design)', coverageOf(s).join(', '),
-      BROWSERS.filter((b) => !coverageOf(s).includes(b)).join(', '), s.scopeReason ?? '', s.requirementRef ?? ''])
-  ], [12, 40, 10, 26, 16, 18, 70, 16]);
-  exc.eachRow((row, n) => { if (n > 1) tint(row.getCell(3)); });
+  addNotExecutedSheet(wb, data, scope);
 
   const ex = wb.addWorksheet('Execution Results');
   const executions = [...data.executions].reverse();

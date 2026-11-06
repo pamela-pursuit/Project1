@@ -39,9 +39,14 @@ node scripts/workbook.mjs build --app <app>      # write test-plans/<app>/<app>-
   including out-of-scope counts, latest run, open risks), followed by the
   delivery report rendered as formatted sections and tables. Every `build`
   re-renders it, so the dashboard always reflects the latest results.
-- **Scope & Exclusions:** every scenario that does not run on all three
-  browsers: not automated (status and reason) or browser-limited (runs on,
-  not run on, `scopeReason`). The Coverage Summary also has an "Execution
+- **Not Executed:** the full accounting of everything that is not an
+  executed, passing test. It shows why N of M scenarios run, the arithmetic
+  from scenarios x browsers down to the executed count, and per-browser
+  counts. It then has one row per scenario/browser that is not automated
+  (status, reason), out of scope by design (`scopeReason`), or a problem in
+  the latest results (failed, flaky, or skipped or never run although in
+  scope). Each row has its reason, where it is covered elsewhere, and the
+  action to take. The Coverage Summary also has an "Execution
   scope" block, and an "Out of scope (by design)" column in the per-browser
   table, so each row adds up to the automated total.
 - **Risks and Assumptions:** risks, assumptions, ambiguities, blockers,

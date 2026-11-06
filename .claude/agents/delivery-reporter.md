@@ -41,6 +41,9 @@ The command rejects text that contains an email address.
    - why browser counts differ: each browser-limited scenario, the browsers
      it runs and does not run on, and its `scopeReason`
    - the expected number of tests per full run and per browser
+   Point the reader to the workbook's **"Not Executed"** sheet, which lists
+   every scenario/browser that was not executed or did not pass, with
+   reason and action.
 7. Implemented Page Objects
 8. Implemented Test Files
 9. Browser Execution Results (table: browser, passed, failed, flaky,

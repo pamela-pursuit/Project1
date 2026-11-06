@@ -186,7 +186,7 @@ brief is all the context it gets.
     scenarios run, which scenarios are not automated and why, and which run
     on fewer browsers and why. Whenever you report test counts per browser,
     include that explanation too, so the user never has to ask why the
-    numbers differ.
+    numbers differ. Point them to the workbook's "Not Executed" sheet.
 
 ## Safety rules (non-negotiable)
 
