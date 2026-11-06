@@ -34,3 +34,10 @@ Never touch the "14.1-inch Laptop" in the account cart. COD orders only as a gue
 | (number not captured) | run 2026-11-05_15-07-20 | First Pass A; no JSON reporter was used |
 | #2411261 | run 2026-11-05_15-27-19 | Pass A re-run |
 | #2411276 | run 2026-11-05_15-59-08 | Final full run |
+| #2411680 | run 2026-11-06_13-14-06 | Re-run requested by the user (2026-11-06) |
+
+## Re-runs
+
+| Date | Runs | Result |
+| --- | --- | --- |
+| 2026-11-06 | 2026-11-06_13-14-06 (guest, --workers=3), 2026-11-06_13-21-14 (account, --workers=1) | 190 passed, 0 failed, 14 skipped (Chromium-only by design); code unchanged since df75acb |

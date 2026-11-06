@@ -362,3 +362,22 @@ The suite is not unconditionally ready, for these reasons:
 7. The user should change the account password, and should not reuse it elsewhere.
 8. Re-check DWS-066 manually and reclassify it if the page renders.
 9. Housekeeping: R-20, R-25, R-27, R-28 and R-30 are still Open in the register, although their scenarios now record or assert the observed behaviour. Review them and close any that are resolved.
+
+---
+
+## Addendum: re-run on 2026-11-06 (user request)
+
+Code unchanged since commit `df75acb`. Credentials check OK; `npx tsc --noEmit` passed.
+
+| Browser | Passed | Failed | Flaky | Skipped (by design) |
+| --- | --- | --- | --- | --- |
+| chromium | 68 | 0 | 0 | 0 |
+| firefox | 61 | 0 | 0 | 7 |
+| webkit | 61 | 0 | 0 | 7 |
+
+- Guest pass: run `2026-11-06_13-14-06`, `--workers=3`, 103 passed and 2 skipped in 7.0 min.
+- Account pass: run `2026-11-06_13-21-14`, `--workers=1`, 87 passed and 12 skipped in 9.8 min.
+- No login was rejected and no internal-error page (R-35) appeared.
+- DWS-061 placed guest COD order **#2411680**. Orders so far: #2411222, one uncaptured, #2411261, #2411276, #2411680.
+- Workbook synced: 675 execution rows; `validate` 0 errors and 0 warnings; 68 Passed, 2 Not Run (DWS-066 Blocked, DWS-070 Manual).
+- The readiness verdict is unchanged: **Ready with limitations**. The results are reproducible across two independent full runs on consecutive days.
