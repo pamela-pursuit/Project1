@@ -347,11 +347,218 @@ function addTable(ws, headers, rows, widths) {
   styleSheet(ws, widths);
 }
 
+// ---------- Delivery report sheet (Markdown -> formatted worksheet) ----------
+
+const REPORT_COLS = [28, 34, 24, 22, 22, 22, 22, 26]; // 8 columns, ~200 characters wide in total
+const REPORT_WIDTH = REPORT_COLS.length;
+const MONO = 'Consolas';
+
+// Inline Markdown -> Excel rich text: **bold**, `code`, [text](link); escaped pipes restored.
+function richText(md, base = {}) {
+  const text = String(md).replace(/\\\|/g, '|').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+  const runs = [];
+  const re = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+  let last = 0;
+  for (const m of text.matchAll(re)) {
+    if (m.index > last) runs.push({ text: text.slice(last, m.index), font: { ...base } });
+    const token = m[0];
+    if (token.startsWith('**')) runs.push({ text: token.slice(2, -2), font: { ...base, bold: true } });
+    else runs.push({ text: token.slice(1, -1), font: { ...base, name: MONO, color: { argb: 'FF7A3E00' } } });
+    last = m.index + token.length;
+  }
+  if (last < text.length) runs.push({ text: text.slice(last), font: { ...base } });
+  return runs.length ? { richText: runs } : '';
+}
+
+const plain = (md) => String(md).replace(/\\\|/g, '|').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/\*\*|`/g, '');
+
+// Wrapped text does not auto-size reliably in files written by libraries, so estimate the height.
+function rowHeight(texts, widths) {
+  let lines = 1;
+  texts.forEach((t, i) => {
+    const perLine = Math.max(8, Math.floor((widths[i] ?? 20) * 1.15));
+    const n = String(t ?? '').split('\n').reduce((sum, part) => sum + Math.max(1, Math.ceil(part.length / perLine)), 0);
+    lines = Math.max(lines, n);
+  });
+  return Math.min(409, Math.max(16, lines * 15 + 3));
+}
+
+function splitTableRow(line) {
+  return line.trim().replace(/^\|/, '').replace(/\|$/, '').split(/(?<!\\)\|/).map((c) => c.trim());
+}
+
+function addDeliveryReportSheet(wb, app, data, md) {
+  const ws = wb.addWorksheet('Delivery Report', { properties: { tabColor: { argb: 'FF1F3864' } } });
+  ws.columns = REPORT_COLS.map((width) => ({ width }));
+  ws.views = [{ showGridLines: false }];
+  ws.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+  const border = { style: 'thin', color: { argb: COLORS.border } };
+  const fullWidth = REPORT_COLS.reduce((a, b) => a + b, 0);
+
+  const mergedRow = (value, { font, fill, height, indent = 0, wrap = true } = {}) => {
+    const row = ws.addRow([]);
+    ws.mergeCells(row.number, 1, row.number, REPORT_WIDTH);
+    const cell = row.getCell(1);
+    cell.value = value;
+    cell.alignment = { vertical: 'top', wrapText: wrap, indent };
+    if (font) cell.font = font;
+    if (fill) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
+    row.height = height ?? rowHeight([plain(typeof value === 'string' ? value : (value.richText ?? []).map((r) => r.text).join(''))], [fullWidth - indent * 2]);
+    return row;
+  };
+
+  // ---- Live summary dashboard, computed from scenarios.json so it is always current ----
+  const scope = executionScope(data);
+  const verdict = md.match(/Overall Automation Readiness[\s\S]*?\*\*([^*]+)\*\*/)?.[1] ?? 'See section 14';
+  const latestRun = data.executions.map((e) => e.runAt).sort().at(-1) ?? 'Not run';
+  const openRisks = data.risks.filter((r) => (r.status ?? 'Open') === 'Open').length;
+  const byStatus = (st) => data.scenarios.filter((s) => (s.executionStatus ?? 'Not Run') === st).length;
+
+  mergedRow(`E2E Delivery Report: ${app}`, { font: { bold: true, size: 18, color: { argb: COLORS.header } }, height: 30 });
+  mergedRow(`Generated ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC from scenarios.json and delivery-report.md. The summary below is computed live; the sections after it are the delivery report.`,
+    { font: { italic: true, color: { argb: 'FF595959' } } });
+  ws.addRow([]);
+
+  const kpis = [
+    ['Readiness verdict', verdict],
+    ['Scenarios', `${data.scenarios.length} in catalogue: ${scope.automated.length} automated, ${scope.notAutomated.length} not automated (${scope.notAutomated.map((s) => `${s.id} ${s.automationStatus}`).join(', ') || 'none'})`],
+    ['Execution status', `${byStatus('Passed')} Passed, ${byStatus('Failed')} Failed, ${byStatus('Flaky')} Flaky, ${byStatus('Partial')} Partial, ${byStatus('Not Run')} Not Run`],
+    ...BROWSERS.map((b) => {
+      const covered = scope.inScope(b);
+      const st = covered.map((s) => latestPerBrowser(s, data.executions).get(b)?.status ?? 'Not run');
+      const n = (x) => st.filter((y) => y === x).length;
+      return [`${b[0].toUpperCase()}${b.slice(1)}`, `${n('Passed')} passed, ${n('Failed')} failed, ${n('Flaky')} flaky, ${n('Not run')} not run; ${scope.automated.length - covered.length} out of scope by design (of ${scope.automated.length} automated)`];
+    }),
+    ['Why counts differ', `${scope.limited.length} scenarios run on fewer browsers by design and ${scope.notAutomated.length} are not automated. See the Execution scope section below and the "Scope & Exclusions" sheet.`],
+    ['Latest run', latestRun],
+    ['Open risks', `${openRisks} of ${data.risks.length} (see "Risks and Assumptions")`]
+  ];
+  const kpiHeader = ws.addRow(['Summary', 'Value']);
+  ws.mergeCells(kpiHeader.number, 2, kpiHeader.number, REPORT_WIDTH);
+  kpiHeader.eachCell((c) => { c.font = { bold: true, color: { argb: COLORS.headerText } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.header } }; });
+  for (const [k, v] of kpis) {
+    const row = ws.addRow([k, v]);
+    ws.mergeCells(row.number, 2, row.number, REPORT_WIDTH);
+    row.getCell(1).font = { bold: true };
+    row.getCell(2).alignment = { wrapText: true, vertical: 'top' };
+    row.getCell(1).alignment = { vertical: 'top' };
+    for (let c = 1; c <= REPORT_WIDTH; c += 1) row.getCell(c).border = { top: border, left: border, bottom: border, right: border };
+    if (k === 'Readiness verdict') {
+      const good = /^ready$/i.test(v.trim());
+      const limited = /limitations/i.test(v);
+      row.getCell(2).font = { bold: true, size: 12, color: { argb: good ? 'FF006100' : limited ? 'FF7F6000' : 'FF9C0006' } };
+      row.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: good ? COLORS.Passed : limited ? COLORS.Flaky : COLORS.Failed } };
+    }
+    row.height = rowHeight([v], [fullWidth - REPORT_COLS[0]]);
+  }
+  ws.addRow([]);
+
+  // ---- Render the Markdown report ----
+  const lines = md.replace(/\r\n/g, '\n').split('\n');
+  let i = 0;
+  let firstTitleSkipped = false;
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (!trimmed || trimmed === '---') { i += 1; continue; }
+
+    if (trimmed.startsWith('```')) {
+      const block = [];
+      i += 1;
+      while (i < lines.length && !lines[i].trim().startsWith('```')) block.push(lines[i++]);
+      i += 1;
+      for (const codeLine of block) {
+        mergedRow(codeLine || ' ', { font: { name: MONO, size: 10 }, fill: 'FFF2F2F2', wrap: true });
+      }
+      ws.addRow([]);
+      continue;
+    }
+
+    if (trimmed.startsWith('|')) {
+      const block = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) block.push(lines[i++]);
+      const rows = block.filter((l) => !/^\|\s*:?-{3,}/.test(l.trim())).map(splitTableRow);
+      const cols = Math.min(REPORT_WIDTH, Math.max(...rows.map((r) => r.length)));
+      // Give the last table column the remaining width so long text has room.
+      const widths = REPORT_COLS.slice(0, cols);
+      widths[cols - 1] = REPORT_COLS.slice(cols - 1).reduce((a, b) => a + b, 0);
+      rows.forEach((cells, r) => {
+        const row = ws.addRow([]);
+        for (let c = 0; c < cols; c += 1) {
+          const cell = row.getCell(c + 1);
+          const value = cells[c] ?? '';
+          cell.value = r === 0 ? plain(value) : richText(value);
+          cell.alignment = { wrapText: true, vertical: 'top' };
+          cell.border = { top: border, left: border, bottom: border, right: border };
+          if (r === 0) {
+            cell.font = { bold: true, color: { argb: COLORS.headerText } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.header } };
+          } else if (r % 2 === 0) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.band } };
+          }
+          // Colour well-known status words.
+          const p = plain(value).trim();
+          if (r > 0 && COLORS[p]) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS[p] } };
+        }
+        if (cols < REPORT_WIDTH) {
+          ws.mergeCells(row.number, cols, row.number, REPORT_WIDTH);
+          row.getCell(cols).border = { top: border, left: border, bottom: border, right: border };
+        }
+        row.height = rowHeight(cells.slice(0, cols).map(plain), widths);
+      });
+      ws.addRow([]);
+      continue;
+    }
+
+    const heading = trimmed.match(/^(#{1,6})\s+(.*)$/);
+    if (heading) {
+      const level = heading[1].length;
+      const text = plain(heading[2]);
+      if (level === 1) {
+        // The dashboard already carries the title; keep only the first H1 out.
+        if (firstTitleSkipped) mergedRow(text, { font: { bold: true, size: 16, color: { argb: COLORS.header } }, height: 26 });
+        firstTitleSkipped = true;
+      } else if (level === 2) {
+        ws.addRow([]);
+        mergedRow(text, { font: { bold: true, size: 13, color: { argb: COLORS.headerText } }, fill: COLORS.header, height: 24 });
+      } else if (level === 3) {
+        mergedRow(text, { font: { bold: true, size: 11, color: { argb: COLORS.header } }, fill: 'FFD9E1F2', height: 20 });
+      } else {
+        mergedRow(text, { font: { bold: true, italic: true, color: { argb: COLORS.header } }, height: 18 });
+      }
+      i += 1;
+      continue;
+    }
+
+    const bullet = line.match(/^(\s*)(?:[-*]|(\d+)\.)\s+(.*)$/);
+    if (bullet) {
+      const depth = Math.floor(bullet[1].length / 2);
+      const marker = bullet[2] ? `${bullet[2]}. ` : depth ? '◦ ' : '• ';
+      const value = richText(marker + bullet[3]);
+      mergedRow(value, { indent: 1 + depth * 2 });
+      i += 1;
+      continue;
+    }
+
+    // Paragraph: join soft-wrapped lines.
+    const para = [trimmed];
+    i += 1;
+    while (i < lines.length && lines[i].trim() && !/^(\s*([-*]|\d+\.)\s|#|\||```|---)/.test(lines[i])) para.push(lines[i++].trim());
+    mergedRow(richText(para.join(' ')));
+  }
+  return ws;
+}
+
 async function build(app, data) {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'E2E automation agent';
   wb.created = new Date();
   wb.calcProperties.fullCalcOnLoad = true;
+
+  // First sheet: the delivery report (live summary + test-plans/<app>/delivery-report.md rendered).
+  const reportFile = path.join('test-plans', app, 'delivery-report.md');
+  if (existsSync(reportFile)) addDeliveryReportSheet(wb, app, data, await readFile(reportFile, 'utf8'));
 
   const scenarioHeaders = [
     'Scenario ID', 'Feature', 'User Journey', 'Test Type', 'Priority', 'Preconditions', 'Test Data', 'Steps',

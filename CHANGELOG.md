@@ -4,6 +4,12 @@
 
 ### Added
 
+- A "Delivery Report" sheet, the first sheet of each app's workbook. It holds
+  a live summary dashboard (verdict, scenarios, results per browser with
+  out-of-scope counts, latest run, open risks) and the delivery-report.md
+  rendered as formatted sections and tables. It is rebuilt by
+  `workbook.mjs build`.
+
 - Execution scope reporting, so reports say why N of M scenarios run and why
   browser counts differ:
   - a `scopeReason` field, required by `validate` for any browser-limited

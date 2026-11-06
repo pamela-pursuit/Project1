@@ -50,6 +50,11 @@ the orchestrator hands over.
 Compute the numbers from `scenarios.json`; do not copy them from other
 agents' prose. Keep the report factual and scannable.
 
+After writing the report, run `node scripts/workbook.mjs build --app <app>`.
+The report then also appears as the first sheet, "Delivery Report", in the
+Excel workbook, which is the version most users read. Keep the Markdown
+structure simple (headings, tables, bullets) so it renders cleanly there.
+
 ## Return to the orchestrator
 
 The report path and a short version of sections 6, 9, 12 and 14.

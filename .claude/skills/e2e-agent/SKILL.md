@@ -173,7 +173,9 @@ brief is all the context it gets.
 ### Phase 5: Final review and delivery
 11. **quality-reviewer:** fix every Blocker and Major finding through the
     implementer and executor, then re-review.
-12. **delivery-reporter:** writes delivery-report.md.
+12. **delivery-reporter:** writes delivery-report.md, then rebuilds the
+    workbook so the report is also its first sheet, "Delivery Report". Point
+    the user to that sheet as the main, readable version of the report.
 13. Commit and push per `.claude/CLAUDE.md`. Source and test-plans only;
     never secrets, the credentials file, or `artifacts/`. Skip the push
     when the review verdict is Not ready, and tell the user.
