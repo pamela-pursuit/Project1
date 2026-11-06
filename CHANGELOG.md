@@ -10,6 +10,14 @@
   rendered as formatted sections and tables. It is rebuilt by
   `workbook.mjs build`.
 
+### Changed
+
+- The delivery report is no longer kept as `test-plans/<app>/delivery-report.md`.
+  Its text is stored in `scenarios.json` (`deliveryReport`) with
+  `workbook.mjs report --from <draft.md>`, read back with `report --print`,
+  and shown only as the workbook's "Delivery Report" sheet. Drafts go to the
+  git-ignored `artifacts/<app>/`.
+
 - Execution scope reporting, so reports say why N of M scenarios run and why
   browser counts differ:
   - a `scopeReason` field, required by `validate` for any browser-limited

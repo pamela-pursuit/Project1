@@ -85,7 +85,7 @@ subagents in `.claude/agents/`:
 | test-executor | tsc, targeted, per-browser, and full-matrix runs; evidence | `artifacts/<app>/runs/<runId>/` |
 | failure-investigator | Root-cause classification from evidence | fix prescriptions |
 | quality-reviewer | Independent read-only review | Ready / Not ready verdict |
-| delivery-reporter | Final 15-section report | `test-plans/<app>/delivery-report.md` |
+| delivery-reporter | Final 15-section report | First sheet "Delivery Report" of `test-plans/<app>/<app>-e2e-scenarios.xlsx` |
 
 Supporting tools:
 

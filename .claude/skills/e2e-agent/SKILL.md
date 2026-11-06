@@ -119,7 +119,7 @@ date. Record no values.
 | `test-plans/<app>/architecture.md` | test-architect |
 | `pages/<app>/`, `tests/<app>/`, `fixtures/<app>.fixture.ts`, `test-data/<app>.data.ts` | playwright-implementer |
 | `artifacts/<app>/discovery/`, `artifacts/<app>/runs/<runId>/` (git-ignored) | explorer, executor (via Playwright config) |
-| `test-plans/<app>/delivery-report.md` | delivery-reporter |
+| Delivery report: `scenarios.json` `deliveryReport`, shown as the workbook's first sheet "Delivery Report" (draft in `artifacts/<app>/delivery-report.md`) | delivery-reporter |
 
 Pass each subagent the app slug, URL, flows, the credential roles and
 fields from intake.md, and the paths it needs. Brief it fully, because the
@@ -173,13 +173,14 @@ brief is all the context it gets.
 ### Phase 5: Final review and delivery
 11. **quality-reviewer:** fix every Blocker and Major finding through the
     implementer and executor, then re-review.
-12. **delivery-reporter:** writes delivery-report.md, then rebuilds the
-    workbook so the report is also its first sheet, "Delivery Report". Point
-    the user to that sheet as the main, readable version of the report.
+12. **delivery-reporter:** writes the report draft and stores it with
+    `workbook.mjs report --from`, so it becomes the workbook's first sheet,
+    "Delivery Report". This sheet is the only report the user gets: point
+    them to it, never to a Markdown file.
 13. Commit and push per `.claude/CLAUDE.md`. Source and test-plans only;
     never secrets, the credentials file, or `artifacts/`. Skip the push
     when the review verdict is Not ready, and tell the user.
-14. Reply to the user with the 15-section summary from delivery-report.md
+14. Reply to the user with the 15-section summary from the Delivery Report sheet
     (condensed), plus links to the workbook and report. The reply **must**
     explain the execution scope (`node scripts/workbook.mjs scope --app <app>`): why N of M
     scenarios run, which scenarios are not automated and why, and which run

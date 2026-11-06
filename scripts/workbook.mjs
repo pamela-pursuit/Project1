@@ -35,10 +35,15 @@ function parseArgs(argv) {
   const args = { command };
   for (let i = 0; i < rest.length; i += 1) {
     if (rest[i] === '--app') args.app = rest[++i];
+    else if (rest[i] === '--from') args.from = rest[++i];
+    else if (rest[i] === '--print') args.print = true;
     else throw new Error(`Unknown argument: ${rest[i]}`);
   }
-  if (!['validate', 'sync', 'build', 'scope', 'all'].includes(command) || !args.app) {
-    throw new Error('Usage: node scripts/workbook.mjs <validate|sync|build|scope|all> --app <name>');
+  if (!['validate', 'sync', 'build', 'scope', 'report', 'all'].includes(command) || !args.app) {
+    throw new Error('Usage: node scripts/workbook.mjs <validate|sync|build|scope|report|all> --app <name> [--from report.md | --print]');
+  }
+  if (command === 'report' && !args.from && !args.print) {
+    throw new Error('report needs --from <file.md> (store the delivery report and rebuild) or --print (output the stored report)');
   }
   return args;
 }
@@ -556,9 +561,9 @@ async function build(app, data) {
   wb.created = new Date();
   wb.calcProperties.fullCalcOnLoad = true;
 
-  // First sheet: the delivery report (live summary + test-plans/<app>/delivery-report.md rendered).
-  const reportFile = path.join('test-plans', app, 'delivery-report.md');
-  if (existsSync(reportFile)) addDeliveryReportSheet(wb, app, data, await readFile(reportFile, 'utf8'));
+  // First sheet: the delivery report (live summary + the stored Markdown report rendered).
+  // The delivery report text is stored in scenarios.json ("deliveryReport", set by the `report` command).
+  if (data.deliveryReport) addDeliveryReportSheet(wb, app, data, data.deliveryReport);
 
   const scenarioHeaders = [
     'Scenario ID', 'Feature', 'User Journey', 'Test Type', 'Priority', 'Preconditions', 'Test Data', 'Steps',
@@ -701,7 +706,8 @@ async function build(app, data) {
 }
 
 async function main() {
-  const { command, app } = parseArgs(process.argv.slice(2));
+  const args = parseArgs(process.argv.slice(2));
+  const { command, app } = args;
   const data = await loadCatalogue(app);
   let ok = true;
   if (command === 'validate' || command === 'all') ok = await validate(app, data);
@@ -713,6 +719,19 @@ async function main() {
   }
   if (command === 'build' || command === 'all') await build(app, data);
   if (command === 'scope') printScope(data);
+  if (command === 'report') {
+    if (args.from) {
+      // Store the Markdown delivery report in the catalogue; the workbook's first sheet is rendered from it.
+      data.deliveryReport = (await readFile(args.from, 'utf8')).split(String.fromCharCode(13)).join('');
+      if (/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(data.deliveryReport.replace(/[\w.+-]+@example\.(test|com)/gi, ''))) {
+        throw new Error('The report contains an e-mail address; remove account values before storing it');
+      }
+      await saveCatalogue(app, data);
+      await build(app, data);
+      console.log(`report: stored ${data.deliveryReport.length} characters from ${args.from} in ${paths(app).catalogue}`);
+    }
+    if (args.print) process.stdout.write(data.deliveryReport ?? '');
+  }
   if (!ok) process.exitCode = 1;
 }
 

@@ -34,12 +34,11 @@ node scripts/workbook.mjs build --app <app>      # write test-plans/<app>/<app>-
   High-priority gaps.
 - **Execution Results:** every merged run per scenario per browser, newest
   first, with the error excerpt.
-- **Delivery Report** (first sheet, built when `test-plans/<app>/delivery-report.md`
-  exists): a live summary dashboard (verdict, scenarios, results per browser
+- **Delivery Report** (first sheet, built when the catalogue has a stored
+  report: `scenarios.json` `deliveryReport`, set by `workbook.mjs report --from`): a live summary dashboard (verdict, scenarios, results per browser
   including out-of-scope counts, latest run, open risks), followed by the
-  delivery report rendered as formatted sections and tables. After the
-  delivery-reporter writes or updates the report, run `build` again so the
-  sheet matches it.
+  delivery report rendered as formatted sections and tables. Every `build`
+  re-renders it, so the dashboard always reflects the latest results.
 - **Scope & Exclusions:** every scenario that does not run on all three
   browsers: not automated (status and reason) or browser-limited (runs on,
   not run on, `scopeReason`). The Coverage Summary also has an "Execution

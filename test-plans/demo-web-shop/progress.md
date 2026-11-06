@@ -14,7 +14,7 @@ Resume in a new session with `/e2e-agent https://demowebshop.tricentis.com --app
 | 4 | Execution (user asked for parallel; see plan below) | Done: run 1 gave 186 passed, 4 failed, 14 skipped (Pass A re-run for reports; guest COD order #2411261) | artifacts/demo-web-shop/runs/ |
 | 4b | Failure investigation and fixes (max 3 iterations per failure) | Done in 1 iteration: DWS-069 (retrying waits), DWS-056 (image layout shift), DWS-050 (demo server error, fail-fast). Re-runs green; all 68 automated scenarios Passed | scenarios.json, workbook |
 | 5a | Quality review | Done: re-review verdict **Ready** (2026-11-06); no Blocker or Major; 3 optional Minors (DWS-069 positive control, DWS-068 redundant check, untracked template file) | |
-| 5b | Delivery report, commit and push | Done (2026-11-06): verdict **Ready with limitations** | delivery-report.md |
+| 5b | Delivery report, commit and push | Done (2026-11-06): verdict **Ready with limitations** | "Delivery Report" sheet in demo-web-shop-e2e-scenarios.xlsx |
 
 ## Execution plan (user: "run in parallel", 2026-11-05)
 
