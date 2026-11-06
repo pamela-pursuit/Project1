@@ -26,6 +26,7 @@ interface Row {
   retry: number;
   screenshots: string[];
   error: string;
+  skipReason: string;
 }
 
 const ID_PATTERN = /\[([A-Z][A-Z0-9]*-\d{3,})\]/;
@@ -84,7 +85,15 @@ export default class ArtifactReporter implements Reporter {
       durationMs: result.duration,
       retry: result.retry,
       screenshots,
-      error: (result.error?.message ?? '').replace(/\u001b\[[0-9;]*m/g, '').split('\n')[0].slice(0, 200)
+      error: (result.error?.message ?? '').replace(/\u001b\[[0-9;]*m/g, '').split('\n')[0].slice(0, 200),
+      // Why a test did not run (test.skip / fixme reason), so every run explains its own skips.
+      skipReason:
+        result.status === 'skipped'
+          ? [...test.annotations, ...result.annotations]
+              .filter((a) => a.type === 'skip' || a.type === 'fixme')
+              .map((a) => a.description ?? '')
+              .find(Boolean) ?? 'Skipped (no reason given)'
+          : ''
     });
   }
 
@@ -123,6 +132,24 @@ export default class ArtifactReporter implements Reporter {
       }),
       ''
     ];
+
+    // Explain every test that did not run, grouped by reason.
+    const skipped = this.rows.filter((r) => r.status === 'skipped');
+    if (skipped.length) {
+      const byReason = new Map<string, Row[]>();
+      for (const r of skipped) byReason.set(r.skipReason, [...(byReason.get(r.skipReason) ?? []), r]);
+      lines.push(
+        `## Not run in this run (${skipped.length} skipped)`,
+        '',
+        'Skips are intentional unless the reason says otherwise; they are not failures.',
+        '',
+        '| Reason | Count | Tests (browser) |',
+        '| --- | --- | --- |',
+        ...[...byReason].map(([reason, rows]) =>
+          `| ${cell(reason)} | ${rows.length} | ${rows.map((r) => `${r.id || cell(r.title)} (${r.browser})`).join(', ')} |`),
+        ''
+      );
+    }
     writeFileSync(path.join(runDirectory, 'summary.md'), lines.join('\n'));
 
     writeFileSync(

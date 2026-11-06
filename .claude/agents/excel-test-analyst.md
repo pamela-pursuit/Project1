@@ -34,8 +34,16 @@ node scripts/workbook.mjs build --app <app>      # write test-plans/<app>/<app>-
   High-priority gaps.
 - **Execution Results:** every merged run per scenario per browser, newest
   first, with the error excerpt.
+- **Scope & Exclusions:** every scenario that does not run on all three
+  browsers: not automated (status and reason) or browser-limited (runs on,
+  not run on, `scopeReason`). The Coverage Summary also has an "Execution
+  scope" block, and an "Out of scope (by design)" column in the per-browser
+  table, so each row adds up to the automated total.
 - **Risks and Assumptions:** risks, assumptions, ambiguities, blockers,
   discrepancies, and defects.
+
+Use `node scripts/workbook.mjs scope --app <app>` to print the same scope explanation as
+Markdown for reports.
 
 ## Task
 

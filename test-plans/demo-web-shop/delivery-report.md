@@ -124,6 +124,32 @@ Browser scope: 61 scenarios on all three browsers; 9 on Chromium only (7 automat
 
 Not run: DWS-066 (Blocked, Downloadable products never renders) and DWS-070 (Manual, `@axe-core/playwright` not installed).
 
+### Execution scope (why 68 of 70 run, and why browser counts differ)
+
+- **68 of 70** scenarios are automated and run. 2 are not automated.
+- A full run executes **190** tests: chromium 68, firefox 61, webkit 61.
+
+#### Not automated (not run)
+
+| Scenario | Priority | Status | Reason |
+| --- | --- | --- | --- |
+| DWS-066 Downloadable products page loads | Low | Blocked | Blocked by environment: /customer/downloadableproducts did not render within 20 s (twice) and 45 s (once) during discovery (discovery.md 3, 4.11). Excluded from CI gating; re-check manually (R-05). |
+| DWS-070 Automated axe scan of key pages | Low | Manual | @axe-core/playwright is not installed in package.json; adding a dependency needs approval. Run manually with the axe browser extension until then. |
+
+#### Browser-limited by design
+
+| Scenario | Priority | Runs on | Not run on | Reason |
+| --- | --- | --- | --- | --- |
+| DWS-002 Known email with a wrong password is rejected | High | chromium | firefox, webkit | Chromium only (R-04): limits wrong-password attempts against the shared existingUser account to one per run, because the account lockout threshold is unknown. Firefox and WebKit login rejection is still covered by DWS-003 (unknown email). |
+| DWS-049 Signed-in customer adds an own item without touching existing items | High | chromium | firefox, webkit | Chromium only (D2): adds and removes an item in the shared account cart. Runs once per full run because it changes the one shared test account (user decision D2: one account, serial runs). Running it on all three browsers would modify the account three times without adding browser coverage; on Firefox and WebKit the cart and wishlist pages are covered as a guest, and signed-in read-only flows (login, session, account pages) run on all three browsers. |
+| DWS-050 Account cart persists across logout and login | High | chromium | firefox, webkit | Chromium only (D2): logs out and back in to check that the account cart is kept. Runs once per full run because it changes the one shared test account (user decision D2: one account, serial runs). Running it on all three browsers would modify the account three times without adding browser coverage; on Firefox and WebKit the cart and wishlist pages are covered as a guest, and signed-in read-only flows (login, session, account pages) run on all three browsers. |
+| DWS-051 Guest cart merges into the account cart on login | High | chromium | firefox, webkit | Chromium only (D2): merges a guest cart into the shared account cart on login. Runs once per full run because it changes the one shared test account (user decision D2: one account, serial runs). Running it on all three browsers would modify the account three times without adding browser coverage; on Firefox and WebKit the cart and wishlist pages are covered as a guest, and signed-in read-only flows (login, session, account pages) run on all three browsers. |
+| DWS-052 Signed-in checkout reaches Billing with prefilled details (stop at Billing) | High | chromium | firefox, webkit | Chromium only (D2): uses the shared account cart for signed-in checkout up to Billing. Runs once per full run because it changes the one shared test account (user decision D2: one account, serial runs). Running it on all three browsers would modify the account three times without adding browser coverage; on Firefox and WebKit the cart and wishlist pages are covered as a guest, and signed-in read-only flows (login, session, account pages) run on all three browsers. Guest checkout steps run on all three browsers (DWS-058 to DWS-060). |
+| DWS-057 Signed-in customer adds and removes an own wishlist item | Medium | chromium | firefox, webkit | Chromium only (D2): adds and removes an item in the shared account wishlist. Runs once per full run because it changes the one shared test account (user decision D2: one account, serial runs). Running it on all three browsers would modify the account three times without adding browser coverage; on Firefox and WebKit the cart and wishlist pages are covered as a guest, and signed-in read-only flows (login, session, account pages) run on all three browsers. The guest wishlist runs on all three browsers (DWS-053 to DWS-056). |
+| DWS-061 Guest places a Cash On Delivery order end to end | High | chromium | firefox, webkit | Chromium only (D2/D5, R-06): places a real, permanent guest Cash On Delivery order on the public demo site, so it runs once per full run. Every checkout step up to the Confirm summary runs on Firefox and WebKit in DWS-060. |
+
+Skipped results for these scenarios on other browsers are expected and are not failures.
+
 ## 7. Implemented Page Objects
 
 In `pages/demo-web-shop/`:

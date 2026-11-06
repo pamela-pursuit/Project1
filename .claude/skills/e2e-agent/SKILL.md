@@ -178,7 +178,12 @@ brief is all the context it gets.
     never secrets, the credentials file, or `artifacts/`. Skip the push
     when the review verdict is Not ready, and tell the user.
 14. Reply to the user with the 15-section summary from delivery-report.md
-    (condensed), plus links to the workbook and report.
+    (condensed), plus links to the workbook and report. The reply **must**
+    explain the execution scope (`node scripts/workbook.mjs scope --app <app>`): why N of M
+    scenarios run, which scenarios are not automated and why, and which run
+    on fewer browsers and why. Whenever you report test counts per browser,
+    include that explanation too, so the user never has to ask why the
+    numbers differ.
 
 ## Safety rules (non-negotiable)
 

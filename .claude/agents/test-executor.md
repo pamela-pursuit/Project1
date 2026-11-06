@@ -62,4 +62,8 @@ fails with a missing-executable error.
 ## Return to the orchestrator
 
 The exact commands, pass/fail counts per browser, the failures with their
-evidence paths, the flaky suspects, and the workbook sync result.
+evidence paths, the flaky suspects, and the workbook sync result. **Explain
+every skip:** copy the "Not run in this run" table from each run's
+`summary.md` (reason, count, tests). Say which skips are by design (for
+example browser-limited scenarios) and flag any unexplained skip as a
+problem.

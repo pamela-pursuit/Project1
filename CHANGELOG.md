@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-11-06
+
+### Added
+
+- Execution scope reporting, so reports say why N of M scenarios run and why
+  browser counts differ:
+  - a `scopeReason` field, required by `validate` for any browser-limited
+    scenario, and `failureNotes` required for Manual and Not Automatable
+    scenarios
+  - a "Scope & Exclusions" workbook sheet, an "Execution scope" block, and an
+    "Out of scope (by design)" column in the per-browser table
+  - `node scripts/workbook.mjs scope --app <app>` prints the explanation as
+    Markdown
+  - each run's `summary.md` lists skipped tests grouped by reason
+- The delivery reporter, executor, scenario designer, Excel analyst and
+  orchestrator must include this explanation in their reports.
+
 ## 2026-11-05
 
 ### Added

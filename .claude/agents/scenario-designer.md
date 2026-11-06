@@ -44,6 +44,11 @@ available), and Chromium/Firefox/WebKit compatibility.
   `Manual` or `Not Automatable` when automation is unsafe or nondeterministic
   (real payment, CAPTCHA, email inbox), and give the reason in `failureNotes`.
   High-priority scenarios must end up `Automated` or `Blocked` with a reason.
+- **Browser coverage:** every scenario runs on all three browsers by default.
+  If you limit `browsers` (for example to chromium because it changes shared
+  data or places an order), you **must** set `scopeReason`. It should explain
+  why, and which other scenarios still cover those browsers. `validate`
+  rejects a limited scenario without it.
 - **Test data:** add each data item to `testData`. Secrets use
   `source: "env:VAR_NAME"` with no `value`. Generate unique data (such as
   emails) at runtime, and record the pattern, not a literal.

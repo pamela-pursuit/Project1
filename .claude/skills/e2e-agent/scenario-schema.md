@@ -22,6 +22,7 @@
       "steps": ["Open Log in", "Enter email and password", "Select Log in"],  // required
       "expected": "Header shows the account email and a Log out link",       // required, observable
       "browsers": ["chromium", "firefox", "webkit"],  // default: all three
+      "scopeReason": "",               // REQUIRED when browsers is a subset: why, and what covers the others
       "automationStatus": "Planned",   // required: Automated | Planned | Manual | Blocked | Not Automatable
       "pageObject": "DemoWebShopLoginPage",
       "risk": "Login failure blocks every purchase",

@@ -7,8 +7,10 @@
 //             runs/<runId>/results.json) with screenshot links
 //             into the catalogue's execution history and statuses
 //   build     writes test-plans/<app>/<app>-e2e-scenarios.xlsx
+//   scope     prints the execution scope as Markdown: why N of M scenarios run, what is
+//             not automated, and which scenarios are browser-limited (with reasons)
 //
-// Usage: node scripts/workbook.mjs <validate|sync|build|all> --app <name>
+// Usage: node scripts/workbook.mjs <validate|sync|build|scope|all> --app <name>
 // Schema: .claude/skills/e2e-agent/scenario-schema.md
 
 import ExcelJS from 'exceljs';
@@ -35,8 +37,8 @@ function parseArgs(argv) {
     if (rest[i] === '--app') args.app = rest[++i];
     else throw new Error(`Unknown argument: ${rest[i]}`);
   }
-  if (!['validate', 'sync', 'build', 'all'].includes(command) || !args.app) {
-    throw new Error('Usage: node scripts/workbook.mjs <validate|sync|build|all> --app <name>');
+  if (!['validate', 'sync', 'build', 'scope', 'all'].includes(command) || !args.app) {
+    throw new Error('Usage: node scripts/workbook.mjs <validate|sync|build|scope|all> --app <name>');
   }
   return args;
 }
@@ -98,7 +100,13 @@ async function validate(app, data) {
     if (s.priority === 'High' && !['Automated', 'Blocked'].includes(s.automationStatus)) {
       warnings.push(`${where}: High priority must be Automated or explicitly Blocked (is ${s.automationStatus})`);
     }
-    if (s.automationStatus === 'Blocked' && !s.failureNotes) errors.push(`${where}: Blocked requires failureNotes explaining the blocker`);
+    if (['Blocked', 'Manual', 'Not Automatable'].includes(s.automationStatus) && !s.failureNotes) {
+      errors.push(`${where}: ${s.automationStatus} requires failureNotes explaining why it is not automated`);
+    }
+    // Reports must be able to say why a scenario does not run on every browser.
+    if (s.automationStatus === 'Automated' && s.browsers?.length && s.browsers.length < BROWSERS.length && !s.scopeReason) {
+      errors.push(`${where}: runs on ${s.browsers.join(', ')} only; scopeReason must explain why`);
+    }
   }
   for (const d of data.testData) {
     if (d.value && SECRET_HINT.test(`${d.key} ${d.notes ?? ''}`)) {
@@ -191,6 +199,55 @@ function computeStatus(s, executions) {
   const notes = results.filter((r) => r.status !== 'Passed').map((r) => `${r.browser}: ${r.status}${r.error ? ` - ${r.error}` : ''}`);
   if (missing.length) notes.push(`not run on: ${missing.join(', ')}`);
   return { status, notes: notes.join(' | '), lastRun: results.map((r) => r.runAt).sort().at(-1) };
+}
+
+// Which scenarios run where, and which do not run at all (used by the workbook and the CLI).
+function executionScope(data) {
+  const automated = data.scenarios.filter((s) => s.automationStatus === 'Automated');
+  const notAutomated = data.scenarios.filter((s) => s.automationStatus !== 'Automated');
+  const limited = automated.filter((s) => coverageOf(s).length < BROWSERS.length);
+  const inScope = (b) => automated.filter((s) => coverageOf(s).includes(b));
+  return {
+    total: data.scenarios.length,
+    automated,
+    notAutomated,
+    limited,
+    inScope,
+    expectedExecutions: BROWSERS.reduce((n, b) => n + inScope(b).length, 0)
+  };
+}
+
+const firstSentence = (text) => {
+  const t = String(text ?? '').trim();
+  const m = t.match(/^(.+?[.!?])(\s|$)/);
+  return (m ? m[1] : t).slice(0, 160);
+};
+
+// Markdown explanation of the execution scope, for delivery reports and agent summaries.
+function printScope(data) {
+  const scope = executionScope(data);
+  const lines = [
+    '## Execution scope',
+    '',
+    `- **${scope.automated.length} of ${scope.total}** scenarios are automated and run. ${scope.notAutomated.length} are not automated.`,
+    `- A full run executes **${scope.expectedExecutions}** tests: ${BROWSERS.map((b) => `${b} ${scope.inScope(b).length}`).join(', ')}.`,
+    ''
+  ];
+  if (scope.notAutomated.length) {
+    lines.push('### Not automated (not run)', '', '| Scenario | Priority | Status | Reason |', '| --- | --- | --- | --- |');
+    for (const s of scope.notAutomated) lines.push(`| ${s.id} ${s.journey} | ${s.priority} | ${s.automationStatus} | ${String(s.failureNotes ?? '').replaceAll('|', '/')} |`);
+    lines.push('');
+  }
+  if (scope.limited.length) {
+    lines.push('### Browser-limited by design', '', '| Scenario | Priority | Runs on | Not run on | Reason |', '| --- | --- | --- | --- | --- |');
+    for (const s of scope.limited) {
+      const not = BROWSERS.filter((b) => !coverageOf(s).includes(b)).join(', ');
+      lines.push(`| ${s.id} ${s.journey} | ${s.priority} | ${coverageOf(s).join(', ')} | ${not} | ${String(s.scopeReason ?? '').replaceAll('|', '/')} |`);
+    }
+    lines.push('');
+    lines.push(`Skipped results for these scenarios on other browsers are expected and are not failures.`);
+  }
+  console.log(lines.join(String.fromCharCode(10)));
 }
 
 function rollup(data) {
@@ -357,24 +414,52 @@ async function build(app, data) {
     cov.addRow([f, count((s) => s.feature === f), count((s) => s.feature === f && s.priority === 'High'), count((s) => s.feature === f && s.automationStatus === 'Automated')]);
   }
   cov.addRow([]);
+  // Execution scope: explains why "N of M" scenarios run and why browsers differ (see sheet "Scope & Exclusions").
+  const scope = executionScope(data);
+  cov.addRow(['Execution scope', 'Count', 'Details']);
+  const scopeHeaderRow = cov.rowCount;
+  cov.addRow(['Scenarios in catalogue', scope.total, '']);
+  cov.addRow(['Automated (run)', scope.automated.length, `${scope.automated.length} of ${scope.total} scenarios have a test and are executed`]);
+  cov.addRow(['Not automated (not run)', scope.notAutomated.length,
+    scope.notAutomated.map((s) => `${s.id} ${s.automationStatus}: ${firstSentence(s.failureNotes)}`).join('\n') || 'None']);
+  cov.addRow(['Browser-limited (by design)', scope.limited.length,
+    scope.limited.map((s) => `${s.id} runs on ${coverageOf(s).join(', ')} only: ${firstSentence(s.scopeReason)}`).join('\n') || 'None']);
+  cov.addRow(['Expected test executions per full run', scope.expectedExecutions,
+    BROWSERS.map((b) => `${b} ${scope.inScope(b).length}`).join(', ')]);
+  cov.addRow([]);
   // Same basis as the scenario statuses: latest result per scenario and covered browser, across all runs.
-  cov.addRow(['Latest result by browser (all runs)', 'Passed', 'Failed', 'Flaky', 'Skipped', 'Not run']);
+  // "Out of scope" = automated scenarios that by design do not run on this browser; each row sums to "Automated".
+  cov.addRow(['Latest result by browser (all runs)', 'Passed', 'Failed', 'Flaky', 'Skipped', 'Not run', 'Out of scope (by design)', 'Automated']);
   const browserHeaderRow = cov.rowCount;
   const latestRun = data.executions.map((e) => e.runAt).sort().at(-1);
   for (const b of BROWSERS) {
-    const covered = data.scenarios.filter((s) => s.automationStatus === 'Automated' && coverageOf(s).includes(b));
+    const covered = scope.inScope(b);
     const statuses = covered.map((s) => latestPerBrowser(s, data.executions).get(b)?.status ?? 'Not run');
-    cov.addRow([b, ...['Passed', 'Failed', 'Flaky', 'Skipped', 'Not run'].map((st) => statuses.filter((x) => x === st).length)]);
+    cov.addRow([b, ...['Passed', 'Failed', 'Flaky', 'Skipped', 'Not run'].map((st) => statuses.filter((x) => x === st).length),
+      scope.automated.length - covered.length, scope.automated.length]);
   }
   cov.addRow([]);
   const gaps = data.scenarios.filter((s) => s.priority === 'High' && !['Automated', 'Blocked'].includes(s.automationStatus));
   cov.addRow(['High-priority gaps', gaps.length ? gaps.map((s) => `${s.id} (${s.automationStatus})`).join(', ') : 'None']);
   cov.addRow(['Latest run', latestRun ?? 'Not run']);
-  styleSheet(cov, [26, 14, 14, 14, 14, 16, 12, 14], { wrap: true });
-  for (const r of [execHeaderRow, typeHeaderRow, featHeaderRow, browserHeaderRow]) {
+  styleSheet(cov, [34, 14, 14, 14, 14, 16, 22, 14], { wrap: true });
+  cov.getColumn(3).width = 14;
+  // The scope "Details" text spans the wide area to the right of the counts.
+  for (let r = scopeHeaderRow; r <= scopeHeaderRow + 5; r += 1) cov.mergeCells(r, 3, r, 8);
+  for (const r of [execHeaderRow, typeHeaderRow, featHeaderRow, scopeHeaderRow, browserHeaderRow]) {
     cov.getRow(r).eachCell((cell) => { cell.font = { bold: true, color: { argb: COLORS.headerText } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.header } }; });
   }
   for (let r = 2; r <= 4; r += 1) cov.getRow(r).getCell(AUTOMATION.length + 3).numFmt = '0%';
+
+  // Every scenario that is not run on all three browsers, with the reason.
+  const exc = wb.addWorksheet('Scope & Exclusions');
+  addTable(exc, ['Scenario ID', 'User Journey', 'Priority', 'Exclusion', 'Runs on', 'Not run on', 'Reason', 'Requirement Reference'], [
+    ...scope.notAutomated.map((s) => [s.id, s.journey, s.priority, `Not automated (${s.automationStatus})`, 'None', BROWSERS.join(', '),
+      s.failureNotes ?? '', s.requirementRef ?? '']),
+    ...scope.limited.map((s) => [s.id, s.journey, s.priority, 'Browser-limited (by design)', coverageOf(s).join(', '),
+      BROWSERS.filter((b) => !coverageOf(s).includes(b)).join(', '), s.scopeReason ?? '', s.requirementRef ?? ''])
+  ], [12, 40, 10, 26, 16, 18, 70, 16]);
+  exc.eachRow((row, n) => { if (n > 1) tint(row.getCell(3)); });
 
   const ex = wb.addWorksheet('Execution Results');
   const executions = [...data.executions].reverse();
@@ -420,6 +505,7 @@ async function main() {
     }
   }
   if (command === 'build' || command === 'all') await build(app, data);
+  if (command === 'scope') printScope(data);
   if (!ok) process.exitCode = 1;
 }
 

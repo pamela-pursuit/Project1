@@ -23,11 +23,21 @@ the orchestrator hands over.
 4. Discovered Application Flows
 5. Excel Workbook Location
 6. Scenario Coverage Summary (totals by priority, automation status, and
-   test type, plus High-priority gaps)
+   test type, plus High-priority gaps). It **must** include an **Execution
+   scope** subsection, generated with `node scripts/workbook.mjs scope --app <app>`, that
+   answers without the reader having to ask:
+   - why **N of M** scenarios run: each scenario that is not automated, with
+     its status and reason (`failureNotes`)
+   - why browser counts differ: each browser-limited scenario, the browsers
+     it runs and does not run on, and its `scopeReason`
+   - the expected number of tests per full run and per browser
 7. Implemented Page Objects
 8. Implemented Test Files
-9. Browser Execution Results (table: browser, passed, failed, flaky, and
-   skipped from the latest run, with the run timestamp)
+9. Browser Execution Results (table: browser, passed, failed, flaky,
+   skipped, and **out of scope by design**, from the latest run, with the run
+   timestamp). State plainly that skips are intentional, and give the reason
+   for each group of skips (from section 6 or the run's `summary.md` "Not run
+   in this run" section). Never present an unexplained skip.
 10. Failures and Discrepancies (scenario, browser, classification, evidence)
 11. Corrections Applied (what changed and why the acceptance criteria are
     intact)

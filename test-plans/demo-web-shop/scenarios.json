@@ -57,7 +57,8 @@
       "failureNotes": "",
       "specFile": "tests/demo-web-shop/auth.spec.ts",
       "lastRun": "2026-11-06T13:21:14.498Z",
-      "lastRunNotes": ""
+      "lastRunNotes": "",
+      "scopeReason": "Chromium only (R-04): limits wrong-password attempts against the shared existingUser account to one per run, because the account lockout threshold is unknown. Firefox and WebKit login rejection is still covered by DWS-003 (unknown email)."
     },
     {
       "id": "DWS-003",
@@ -1387,7 +1388,8 @@
       "failureNotes": "",
       "specFile": "tests/demo-web-shop/cart-signed-in.spec.ts",
       "lastRun": "2026-11-06T13:21:14.498Z",
-      "lastRunNotes": ""
+      "lastRunNotes": "",
+      "scopeReason": "Chromium only (D2): adds and removes an item in the shared account cart. Runs once per full run because it changes the one shared test account (user decision D2: one account, serial runs). Running it on all three browsers would modify the account three times without adding browser coverage; on Firefox and WebKit the cart and wishlist pages are covered as a guest, and signed-in read-only flows (login, session, account pages) run on all three browsers."
     },
     {
       "id": "DWS-050",
@@ -1417,7 +1419,8 @@
       "failureNotes": "Test body passed; teardown 'Update shopping cart' hung about 35 s, then the site returned \"We're sorry, an internal error occurred.\" (environment, single occurrence; the same purge succeeded in DWS-049/051/052). Leftover Health Book was removed by the next setup purge (D1 guard worked). Now fails fast on the server error page.",
       "specFile": "tests/demo-web-shop/cart-signed-in.spec.ts",
       "lastRun": "2026-11-06T13:21:14.498Z",
-      "lastRunNotes": ""
+      "lastRunNotes": "",
+      "scopeReason": "Chromium only (D2): logs out and back in to check that the account cart is kept. Runs once per full run because it changes the one shared test account (user decision D2: one account, serial runs). Running it on all three browsers would modify the account three times without adding browser coverage; on Firefox and WebKit the cart and wishlist pages are covered as a guest, and signed-in read-only flows (login, session, account pages) run on all three browsers."
     },
     {
       "id": "DWS-051",
@@ -1445,7 +1448,8 @@
       "failureNotes": "",
       "specFile": "tests/demo-web-shop/cart-signed-in.spec.ts",
       "lastRun": "2026-11-06T13:21:14.498Z",
-      "lastRunNotes": ""
+      "lastRunNotes": "",
+      "scopeReason": "Chromium only (D2): merges a guest cart into the shared account cart on login. Runs once per full run because it changes the one shared test account (user decision D2: one account, serial runs). Running it on all three browsers would modify the account three times without adding browser coverage; on Firefox and WebKit the cart and wishlist pages are covered as a guest, and signed-in read-only flows (login, session, account pages) run on all three browsers."
     },
     {
       "id": "DWS-052",
@@ -1474,7 +1478,8 @@
       "failureNotes": "",
       "specFile": "tests/demo-web-shop/checkout-signed-in.spec.ts",
       "lastRun": "2026-11-06T13:21:14.498Z",
-      "lastRunNotes": ""
+      "lastRunNotes": "",
+      "scopeReason": "Chromium only (D2): uses the shared account cart for signed-in checkout up to Billing. Runs once per full run because it changes the one shared test account (user decision D2: one account, serial runs). Running it on all three browsers would modify the account three times without adding browser coverage; on Firefox and WebKit the cart and wishlist pages are covered as a guest, and signed-in read-only flows (login, session, account pages) run on all three browsers. Guest checkout steps run on all three browsers (DWS-058 to DWS-060)."
     },
     {
       "id": "DWS-053",
@@ -1616,7 +1621,8 @@
       "failureNotes": "",
       "specFile": "tests/demo-web-shop/wishlist.spec.ts",
       "lastRun": "2026-11-06T13:21:14.498Z",
-      "lastRunNotes": ""
+      "lastRunNotes": "",
+      "scopeReason": "Chromium only (D2): adds and removes an item in the shared account wishlist. Runs once per full run because it changes the one shared test account (user decision D2: one account, serial runs). Running it on all three browsers would modify the account three times without adding browser coverage; on Firefox and WebKit the cart and wishlist pages are covered as a guest, and signed-in read-only flows (login, session, account pages) run on all three browsers. The guest wishlist runs on all three browsers (DWS-053 to DWS-056)."
     },
     {
       "id": "DWS-058",
@@ -1736,7 +1742,8 @@
       "failureNotes": "",
       "specFile": "tests/demo-web-shop/checkout-cod.spec.ts",
       "lastRun": "2026-11-06T13:14:06.731Z",
-      "lastRunNotes": ""
+      "lastRunNotes": "",
+      "scopeReason": "Chromium only (D2/D5, R-06): places a real, permanent guest Cash On Delivery order on the public demo site, so it runs once per full run. Every checkout step up to the Confirm summary runs on Firefox and WebKit in DWS-060."
     },
     {
       "id": "DWS-062",
