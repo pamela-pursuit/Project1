@@ -1,4 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
+import { escapeRegExp } from '../../test-data/demo-web-shop.data';
 import { DemoWebShopHeader } from './header.page';
 import { DemoWebShopNotificationBar } from './notification-bar.page';
 
@@ -17,8 +18,11 @@ export class DemoWebShopOrderPage {
     this.pageBody = page.locator('.page-body');
   }
 
-  /** Product table row matched by its product name. */
+  /**
+   * Product table row whose text starts with exactly this product name (the first column;
+   * the order-details row markup was not probed, so no link role is assumed).
+   */
   productRow(name: string): Locator {
-    return this.pageBody.locator('tr', { hasText: name });
+    return this.pageBody.locator('tr').filter({ hasText: new RegExp(`^\\s*${escapeRegExp(name)}(?:\\s|$)`) });
   }
 }

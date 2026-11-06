@@ -1,15 +1,15 @@
-import { expect, recordObservation, test } from '../../fixtures/demo-web-shop.fixture';
+import { expect, test } from '../../fixtures/demo-web-shop.fixture';
 import { MESSAGES, PRODUCTS } from '../../test-data/demo-web-shop.data';
 
-// The failure handler raises a native alert (implementation probe P1). Waiting for it is the
-// synchronisation point; its text is recorded, not asserted (R-24).
+// The failure handler raises a native alert (implementation probe P1, R-24 closed). Waiting for it
+// is the synchronisation point, and its exact text is asserted.
 test.describe('Network resilience', () => {
   test('[DWS-037] Aborted add-to-cart request leaves the cart empty', async ({ productPage, cartPage, cartNetwork, header }) => {
     await productPage.open(PRODUCTS.computingAndInternet.path);
     const { fired } = await cartNetwork.abortNext('details');
     const alert = await productPage.clickAddToCartExpectingAlert();
     await fired;
-    recordObservation('R-24', `aborted request: alert "${alert}"`);
+    expect(alert).toBe(MESSAGES.addToCartFailedAlert);
 
     await expect(productPage.notification.root).toBeHidden();
     await expect(header.cartLink).toHaveText('Shopping cart (0)');
@@ -23,7 +23,9 @@ test.describe('Network resilience', () => {
       const { fired } = await cartNetwork.failNextWith(500, 'details');
       const alert = await productPage.clickAddToCartExpectingAlert();
       await fired;
-      recordObservation('R-24', `HTTP 500: alert "${alert}"`);
+      expect(alert).toBe(MESSAGES.addToCartFailedAlert);
+      await expect(productPage.notification.root).toBeHidden();
+      await expect(header.cartLink).toHaveText('Shopping cart (0)');
     });
 
     await test.step('Retry: real request', async () => {

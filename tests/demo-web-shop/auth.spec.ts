@@ -1,4 +1,4 @@
-import { chromiumOnly, expect, recordObservation, test } from '../../fixtures/demo-web-shop.fixture';
+import { chromiumOnly, expect, test } from '../../fixtures/demo-web-shop.fixture';
 import { INVALID, MESSAGES, unknownEmail, wrongLoginValue } from '../../test-data/demo-web-shop.data';
 
 // P9: account values must not reach report artifacts. Values are filled without step titles
@@ -58,11 +58,12 @@ test.describe('Authentication', () => {
     await loginPage.open();
     const outcome = await loginPage.signIn(INVALID.whitespaceEmail, wrongLoginValue());
 
+    // R-17 (closed): observed on the first run, now asserted.
+    expect(outcome).toBe('rejected');
     await expect(page).toHaveURL(/\/login$/);
     await expect(header.logoutLink).toHaveCount(0);
-    // R-17: record the message on the first run before it is asserted.
-    const summary = outcome === 'rejected' ? (await loginPage.errorSummary.innerText()).replace(/\s+/g, ' ').trim() : '(no summary)';
-    recordObservation('R-17', `outcome=${outcome}; message="${summary}"`);
+    await expect(loginPage.errorSummary).toContainText(MESSAGES.loginFailed);
+    await expect(loginPage.errorSummary).toContainText(MESSAGES.noCustomerAccount);
   });
 
   // Lockout protection (R-04): one wrong-password attempt per run, never retried, Chromium only.

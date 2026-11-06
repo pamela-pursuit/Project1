@@ -1,6 +1,7 @@
 import type { Locator, Page } from '@playwright/test';
 import { escapeRegExp } from '../../test-data/demo-web-shop.data';
 import { navigateBy } from './navigation';
+import { cartContent, searchHeading, wishlistHeading } from './ready-locators';
 
 export type SearchObservation = { kind: 'alert'; message: string } | { kind: 'navigated'; url: string };
 
@@ -62,7 +63,7 @@ export class DemoWebShopHeader {
   async search(term: string): Promise<void> {
     await this.searchInput.fill(term);
     await navigateBy(this.page, () => this.searchButton.click(), /\/search\?q=/);
-    await this.page.getByRole('heading', { level: 1, name: 'Search' }).waitFor();
+    await searchHeading(this.page).waitFor();
   }
 
   /**
@@ -117,12 +118,12 @@ export class DemoWebShopHeader {
 
   async openCart(): Promise<void> {
     await navigateBy(this.page, () => this.cartLink.click(), /\/cart/);
-    await this.page.locator('.order-summary-content').waitFor();
+    await cartContent(this.page).waitFor();
   }
 
   async openWishlist(): Promise<void> {
     await navigateBy(this.page, () => this.wishlistLink.click(), /\/wishlist/);
-    await this.page.getByRole('heading', { level: 1, name: 'Wishlist' }).waitFor();
+    await wishlistHeading(this.page).waitFor();
   }
 
   async openAccount(): Promise<void> {

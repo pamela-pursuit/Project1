@@ -20,8 +20,9 @@ export class DemoWebShopHomePage {
     this.htmlRoot = page.locator('html');
   }
 
+  /** Exact title-link name, so "Build your own computer" does not match "Build your own cheap computer". */
   productItem(name: string): Locator {
-    return this.page.locator('.product-item', { hasText: name });
+    return this.page.locator('.product-item').filter({ has: this.page.getByRole('link', { name, exact: true }) });
   }
 
   productItemAddToCart(name: string): Locator {

@@ -1,3 +1,4 @@
+import type { Locator } from '@playwright/test';
 import { expect, recordObservation, reportOnly, test } from '../../fixtures/demo-web-shop.fixture';
 import { LISTING, MAX_TABS_TO_EMAIL, PRODUCTS } from '../../test-data/demo-web-shop.data';
 
@@ -8,7 +9,11 @@ test.use({ trace: 'off' });
 
 // Report-only (D4, R-31): findings are recorded as `a11y-gap` annotations and do not fail CI
 // until a WCAG target is agreed. DWS-070 (axe scan) is Manual: @axe-core/playwright is not installed.
+// Used only by DWS-068's single visibility check.
 const QUICK = { timeout: 2_000 };
+// A single attempt: Playwright checks once before a 1 ms timeout expires (probe r1).
+// `timeout: 0` is not usable here: it disables the timeout and waits forever.
+const SINGLE_CHECK = { timeout: 1 };
 
 test.describe('Accessibility (report-only)', () => {
   test.describe('Existing account', () => {
@@ -29,34 +34,34 @@ test.describe('Accessibility (report-only)', () => {
     });
   });
 
+  // Each check makes a single attempt after the page-object ready wait: the known gaps never
+  // resolve, so retrying only spent time (first full run: timeouts on firefox/webkit).
+  // toHaveCount(1) runs outside reportOnly, so a missing or ambiguous control fails the test.
   test('[DWS-069] Known accessibility gaps are reported', async ({ homePage, header, categoryPage, productPage, cartPage }) => {
+    const reportName = async (description: string, control: Locator) => {
+      await expect(control, description).toHaveCount(1);
+      await reportOnly(description, async () => {
+        await expect(control, description).toHaveAccessibleName(/\S/, SINGLE_CHECK);
+      });
+    };
+
     await test.step('Home page', async () => {
       await homePage.open();
       await reportOnly('<html> has a lang attribute', async () => {
-        await expect(homePage.htmlRoot).toHaveAttribute('lang', /\S+/, QUICK);
+        expect((await homePage.htmlRoot.getAttribute('lang')) ?? '', '<html lang>').toMatch(/\S+/);
       });
       await reportOnly('Home page has an h1', async () => {
-        await expect(homePage.heading).not.toHaveCount(0, QUICK);
+        expect(await homePage.heading.count(), 'h1 count on /').toBeGreaterThan(0);
       });
-      await reportOnly('Header search input has an accessible name', async () => {
-        await expect(header.searchInput).toHaveAccessibleName(/\S+/, QUICK);
-      });
-      await reportOnly('Newsletter email input has an accessible name', async () => {
-        await expect(homePage.newsletterEmail).toHaveAccessibleName(/\S+/, QUICK);
-      });
+      await reportName('Header search input has an accessible name', header.searchInput);
+      await reportName('Newsletter email input has an accessible name', homePage.newsletterEmail);
     });
 
     await test.step('Category listing', async () => {
       await categoryPage.open(LISTING.slug);
-      for (const [name, select] of [
-        ['Sort by', categoryPage.sortSelect],
-        ['Display per page', categoryPage.pageSizeSelect],
-        ['View as', categoryPage.viewModeSelect]
-      ] as const) {
-        await reportOnly(`Listing "${name}" select has an accessible name`, async () => {
-          await expect(select).toHaveAccessibleName(/\S+/, QUICK);
-        });
-      }
+      await reportName('Listing "Sort by" select has an accessible name', categoryPage.sortSelect);
+      await reportName('Listing "Display per page" select has an accessible name', categoryPage.pageSizeSelect);
+      await reportName('Listing "View as" select has an accessible name', categoryPage.viewModeSelect);
     });
 
     await test.step('Cart', async () => {
@@ -64,17 +69,11 @@ test.describe('Accessibility (report-only)', () => {
       await productPage.addToCart();
       await cartPage.open();
       const product = PRODUCTS.computingAndInternet.name;
-      for (const [name, control] of [
-        ['Cart quantity input', cartPage.rowQuantityInput(product)],
-        ['Cart remove checkbox', cartPage.rowRemoveCheckbox(product)],
-        ['Terms of service checkbox', cartPage.termsCheckbox],
-        ['Coupon input', cartPage.couponInput],
-        ['Gift card input', cartPage.giftCardInput]
-      ] as const) {
-        await reportOnly(`${name} has an accessible name`, async () => {
-          await expect(control).toHaveAccessibleName(/\S+/, QUICK);
-        });
-      }
+      await reportName('Cart quantity input has an accessible name', cartPage.rowQuantityInput(product));
+      await reportName('Cart remove checkbox has an accessible name', cartPage.rowRemoveCheckbox(product));
+      await reportName('Terms of service checkbox has an accessible name', cartPage.termsCheckbox);
+      await reportName('Coupon input has an accessible name', cartPage.couponInput);
+      await reportName('Gift card input has an accessible name', cartPage.giftCardInput);
     });
   });
 });

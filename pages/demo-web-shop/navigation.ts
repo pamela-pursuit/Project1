@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 /**
  * Runs an action that triggers a full-page navigation and waits for the new document's
@@ -14,5 +14,34 @@ export async function navigateBy(page: Page, action: () => Promise<unknown>, url
   await page.waitForLoadState('domcontentloaded');
   if (url) {
     await page.waitForURL(url, { waitUntil: 'domcontentloaded' });
+  }
+}
+
+/**
+ * Waits for a page's ready locator or the site's generic error page, whichever comes first,
+ * and throws (fail fast, no retry) when the error page is shown. The shared demo server can
+ * return "We're sorry, an internal error occurred." after a long cart form POST (environment).
+ */
+export async function waitForReadyOrServerError(ready: Locator, serverError: Locator, action: string): Promise<void> {
+  await ready.or(serverError).first().waitFor();
+  if (await serverError.isVisible()) {
+    throw new Error(`Server returned its internal error page after "${action}" (environment)`);
+  }
+}
+
+/**
+ * Waits until every image matched by `selector` has finished loading. Cart and wishlist row
+ * thumbnails have no width/height, so a late-loading image shifts the row controls (24.5 px
+ * observed on Firefox) and a click can land on the wrong spot. Used after page-ready waits.
+ */
+export async function waitForImagesComplete(page: Page, selector: string): Promise<void> {
+  try {
+    await page.waitForFunction(
+      (css) => Array.from(document.querySelectorAll<HTMLImageElement>(css)).every((image) => image.complete),
+      selector,
+      { timeout: 10_000 }
+    );
+  } catch (error) {
+    throw new Error(`Row images did not finish loading (${selector})`, { cause: error });
   }
 }

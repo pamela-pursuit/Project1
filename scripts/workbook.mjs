@@ -112,7 +112,12 @@ async function validate(app, data) {
     const files = titles.get(s.id);
     if (s.automationStatus === 'Automated' && !files) errors.push(`${s.id}: marked Automated but no test title contains [${s.id}] under ${paths(app).tests}`);
     if (files && s.automationStatus !== 'Automated') warnings.push(`${s.id}: test exists (${files[0]}) but automationStatus is ${s.automationStatus}`);
-    if (files && files.length > 1) warnings.push(`${s.id}: referenced by ${files.length} tests; confirm this is not duplication`);
+    if (files && files.length > 1) errors.push(`${s.id}: referenced by ${files.length} test titles; each scenario must map to exactly one test`);
+    // A status may only be what the merged execution rows support (no hand-edited "Passed").
+    const computed = computeStatus(s, data.executions).status;
+    if ((s.executionStatus ?? 'Not Run') !== computed) {
+      errors.push(`${s.id}: executionStatus "${s.executionStatus ?? 'Not Run'}" is not backed by execution rows (computed "${computed}"); run sync`);
+    }
   }
   for (const [id, files] of titles) if (!ids.has(id)) errors.push(`${files[0]}: test tag [${id}] has no catalogue scenario`);
 
@@ -147,13 +152,67 @@ async function resolveResults(app) {
 
 const toRepoPath = (p) => (p ? path.relative(process.cwd(), p).replaceAll('\\', '/') : '');
 
+const SEVERITY = { Failed: 4, Flaky: 3, Skipped: 2, Passed: 1 };
+const coverageOf = (s) => (s.browsers?.length ? s.browsers : BROWSERS);
+
+// Latest result per covered browser across all merged runs (suites are often run in several
+// passes). For each browser the newest runAt wins, and within that run the WORST row wins,
+// so --repeat-each or duplicate [ID] titles can never hide a failure. Browsers outside the
+// scenario's coverage (e.g. intentional skips of a chromium-only test) are ignored.
+function latestPerBrowser(s, executions) {
+  const coverage = coverageOf(s);
+  const newest = new Map();
+  for (const e of executions) {
+    if (e.scenarioId !== s.id || !coverage.includes(e.browser)) continue;
+    const runAt = newest.get(e.browser);
+    if (!runAt || e.runAt > runAt) newest.set(e.browser, e.runAt);
+  }
+  const latest = new Map();
+  for (const [browser, runAt] of newest) {
+    const rows = executions.filter((e) => e.scenarioId === s.id && e.browser === browser && e.runAt === runAt);
+    latest.set(browser, rows.reduce((worst, r) => ((SEVERITY[r.status] ?? 5) > (SEVERITY[worst.status] ?? 5) ? r : worst)));
+  }
+  return latest;
+}
+
+function computeStatus(s, executions) {
+  const coverage = coverageOf(s);
+  const latest = latestPerBrowser(s, executions);
+  if (!latest.size) return { status: 'Not Run', notes: '', lastRun: '' };
+  const results = [...latest.values()];
+  const statuses = new Set(results.map((r) => r.status));
+  const missing = coverage.filter((b) => !latest.has(b));
+  let status;
+  if (statuses.has('Failed')) status = 'Failed';
+  else if (statuses.has('Flaky')) status = 'Flaky';
+  else if (statuses.size === 1 && statuses.has('Skipped') && !missing.length) status = 'Skipped';
+  else if (missing.length || statuses.has('Skipped')) status = 'Partial';
+  else status = 'Passed';
+  const notes = results.filter((r) => r.status !== 'Passed').map((r) => `${r.browser}: ${r.status}${r.error ? ` - ${r.error}` : ''}`);
+  if (missing.length) notes.push(`not run on: ${missing.join(', ')}`);
+  return { status, notes: notes.join(' | '), lastRun: results.map((r) => r.runAt).sort().at(-1) };
+}
+
+function rollup(data) {
+  for (const s of data.scenarios) {
+    const { status, notes, lastRun } = computeStatus(s, data.executions);
+    s.executionStatus = status;
+    s.lastRunNotes = notes;
+    s.lastRun = lastRun;
+  }
+}
+
+// Never store e-mail addresses (e.g. the signed-in header link quoted in an error) in the tracked catalogue.
+const redact = (text) => text.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[redacted-email]');
+
 async function sync(app, data) {
   const file = await resolveResults(app);
   if (!existsSync(file)) throw new Error(`Missing ${file}. Run tests with TEST_SUITE=${app} first.`);
   const report = JSON.parse(await readFile(file, 'utf8'));
   const runAt = report.stats?.startTime ?? new Date().toISOString();
   if (data.executions.some((e) => e.runAt === runAt)) {
-    console.log(`sync: run ${runAt} already merged`);
+    console.log(`sync: run ${runAt} already merged (statuses recomputed)`);
+    rollup(data);
     return;
   }
   const rows = [];
@@ -171,7 +230,7 @@ async function sync(app, data) {
         durationMs: last?.duration ?? null,
         testTitle: spec.title,
         file: spec.file,
-        error: stripAnsi(last?.error?.message ?? '').split('\n').slice(0, 4).join(' ').slice(0, 600),
+        error: redact(stripAnsi(last?.error?.message ?? '').split('\n').slice(0, 4).join(' ')).slice(0, 600),
         screenshot: toRepoPath((last?.attachments ?? []).filter((a) => a.contentType?.startsWith('image/') && a.path).at(-1)?.path),
         runDirectory: toRepoPath(path.dirname(file))
       };
@@ -180,24 +239,9 @@ async function sync(app, data) {
     }
   }
   data.executions.push(...rows);
+  rollup(data);
 
   const known = new Set(data.scenarios.map((s) => s.id));
-  for (const s of data.scenarios) {
-    const mine = rows.filter((r) => r.scenarioId === s.id);
-    if (!mine.length) continue;
-    const statuses = new Set(mine.map((r) => r.status));
-    const expected = s.browsers?.length ? s.browsers : BROWSERS;
-    const missing = expected.filter((b) => !mine.some((r) => r.browser === b));
-    if (statuses.has('Failed')) s.executionStatus = 'Failed';
-    else if (statuses.has('Flaky')) s.executionStatus = 'Flaky';
-    else if (statuses.size === 1 && statuses.has('Skipped')) s.executionStatus = 'Skipped';
-    else if (missing.length || statuses.has('Skipped')) s.executionStatus = 'Partial';
-    else s.executionStatus = 'Passed';
-    const failures = mine.filter((r) => r.status !== 'Passed').map((r) => `${r.browser}: ${r.status}${r.error ? ` - ${r.error}` : ''}`);
-    if (missing.length) failures.push(`not run on: ${missing.join(', ')}`);
-    s.lastRun = runAt;
-    s.lastRunNotes = failures.join(' | ');
-  }
   const orphan = [...new Set(rows.filter((r) => !known.has(r.scenarioId)).map((r) => r.scenarioId))];
   const counts = rows.reduce((acc, r) => ({ ...acc, [r.status]: (acc[r.status] ?? 0) + 1 }), {});
   console.log(`sync: run ${runAt}: ${JSON.stringify(counts)}`);
@@ -313,12 +357,14 @@ async function build(app, data) {
     cov.addRow([f, count((s) => s.feature === f), count((s) => s.feature === f && s.priority === 'High'), count((s) => s.feature === f && s.automationStatus === 'Automated')]);
   }
   cov.addRow([]);
-  cov.addRow(['Latest run by browser', 'Passed', 'Failed', 'Flaky', 'Skipped']);
+  // Same basis as the scenario statuses: latest result per scenario and covered browser, across all runs.
+  cov.addRow(['Latest result by browser (all runs)', 'Passed', 'Failed', 'Flaky', 'Skipped', 'Not run']);
   const browserHeaderRow = cov.rowCount;
-  const latestRun = data.executions.at(-1)?.runAt;
+  const latestRun = data.executions.map((e) => e.runAt).sort().at(-1);
   for (const b of BROWSERS) {
-    const rows = data.executions.filter((e) => e.runAt === latestRun && e.browser === b);
-    cov.addRow([b, ...['Passed', 'Failed', 'Flaky', 'Skipped'].map((st) => rows.filter((r) => r.status === st).length)]);
+    const covered = data.scenarios.filter((s) => s.automationStatus === 'Automated' && coverageOf(s).includes(b));
+    const statuses = covered.map((s) => latestPerBrowser(s, data.executions).get(b)?.status ?? 'Not run');
+    cov.addRow([b, ...['Passed', 'Failed', 'Flaky', 'Skipped', 'Not run'].map((st) => statuses.filter((x) => x === st).length)]);
   }
   cov.addRow([]);
   const gaps = data.scenarios.filter((s) => s.priority === 'High' && !['Automated', 'Blocked'].includes(s.automationStatus));

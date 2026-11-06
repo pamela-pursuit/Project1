@@ -283,14 +283,17 @@ export function recordObservation(type: string, description: string): void {
 }
 
 /**
- * Report-only check (D4, R-31): accessibility findings are recorded as `a11y-gap`
- * annotations and do not fail the test. Used only in accessibility.spec.ts.
+ * Report-only check (D4, R-31): an assertion failure (an error carrying `matcherResult`) is
+ * recorded as an `a11y-gap` annotation and does not fail the test. Any other error (strict mode
+ * violation, closed page, timeout of an action) is rethrown. Used only in accessibility.spec.ts.
  */
 export async function reportOnly(description: string, check: () => Promise<void>): Promise<void> {
   try {
     await check();
   } catch (error) {
-    const message = error instanceof Error ? error.message.split('\n')[0] : String(error);
-    recordObservation('a11y-gap', `${description}: ${message}`);
+    if (!(error instanceof Error) || !('matcherResult' in error)) {
+      throw error;
+    }
+    recordObservation('a11y-gap', `${description}: ${error.message.split('\n')[0]}`);
   }
 }

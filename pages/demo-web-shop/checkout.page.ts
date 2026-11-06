@@ -37,7 +37,8 @@ export class DemoWebShopCheckoutPage {
   // Read only for its value attribute.
   readonly checkedPaymentMethod: Locator;
   readonly paymentInfo: Locator;
-  readonly confirmButton: Locator;
+  // Private (D5): Confirm is reachable only through confirmCashOnDeliveryOrder().
+  readonly #confirmButton: Locator;
   // Confirm Order summary blocks have no roles; class names from the c3 probe.
   readonly summaryBilling: Locator;
   readonly summaryShipping: Locator;
@@ -62,7 +63,7 @@ export class DemoWebShopCheckoutPage {
     this.codRadio = this.step('payment_method').getByLabel(/Cash On Delivery/);
     this.checkedPaymentMethod = page.locator('input[name=paymentmethod]:checked');
     this.paymentInfo = this.step('payment_info');
-    this.confirmButton = this.buttonsContainer('confirm-order').getByRole('button', { name: 'Confirm' });
+    this.#confirmButton = this.buttonsContainer('confirm-order').getByRole('button', { name: 'Confirm' });
     const confirm = this.step('confirm_order');
     this.summaryBilling = confirm.locator('.billing-info');
     this.summaryShipping = confirm.locator('.shipping-info');
@@ -84,8 +85,16 @@ export class DemoWebShopCheckoutPage {
     return this.billingForm.getByLabel(label, { exact: true });
   }
 
-  /** Unscoped "Continue" is ambiguous once several steps are rendered. */
-  continueButton(container: Exclude<ButtonContainer, 'confirm-order'>): Locator {
+  /** Instant state read for specs; the button itself is private (D5). */
+  async confirmButtonVisible(): Promise<boolean> {
+    return this.#confirmButton.isVisible();
+  }
+
+  /**
+   * Unscoped "Continue" is ambiguous once several steps are rendered. Private (D5): Billing
+   * Continue is reachable only through the signed-in-guarded continueBilling* methods.
+   */
+  #continueButton(container: Exclude<ButtonContainer, 'confirm-order'>): Locator {
     return this.buttonsContainer(container).getByRole('button', { name: 'Continue' });
   }
 
@@ -133,21 +142,20 @@ export class DemoWebShopCheckoutPage {
   }
 
   async continueBilling(): Promise<void> {
-    if (await this.header.logoutLink.isVisible()) {
-      throw new Error('D5: signed-in checkout must stop at Billing');
-    }
-    await this.continueButton('billing').click();
+    await this.refuseWhenSignedIn();
+    await this.#continueButton('billing').click();
     await this.waitForStep('shipping', 'shipping');
   }
 
   /** DWS-059: client-side validation keeps the billing step open. */
   async continueBillingExpectingErrors(): Promise<void> {
-    await this.continueButton('billing').click();
+    await this.refuseWhenSignedIn();
+    await this.#continueButton('billing').click();
     await this.billingFieldErrors.first().waitFor();
   }
 
   async continueShippingAddress(): Promise<void> {
-    await this.continueButton('shipping').click();
+    await this.#continueButton('shipping').click();
     await this.waitForStep('shipping_method', 'shipping-method');
   }
 
@@ -156,7 +164,7 @@ export class DemoWebShopCheckoutPage {
   }
 
   async continueShippingMethod(): Promise<void> {
-    await this.continueButton('shipping-method').click();
+    await this.#continueButton('shipping-method').click();
     await this.waitForStep('payment_method', 'payment-method');
   }
 
@@ -167,12 +175,12 @@ export class DemoWebShopCheckoutPage {
 
   async continuePaymentMethod(): Promise<void> {
     await this.assertCashOnDelivery();
-    await this.continueButton('payment-method').click();
+    await this.#continueButton('payment-method').click();
     await this.waitForStep('payment_info', 'payment-info');
   }
 
   async continuePaymentInfo(): Promise<void> {
-    await this.continueButton('payment-info').click();
+    await this.#continueButton('payment-info').click();
     await this.waitForStep('confirm_order', 'confirm-order');
   }
 
@@ -201,7 +209,7 @@ export class DemoWebShopCheckoutPage {
     if (!summaryMethod.includes('Cash On Delivery (COD)')) {
       throw new Error(`Refusing to confirm: summary payment method is "${summaryMethod}"`);
     }
-    await navigateBy(this.page, () => this.confirmButton.click(), /\/checkout\/completed/);
+    await navigateBy(this.page, () => this.#confirmButton.click(), /\/checkout\/completed/);
     const completed = new DemoWebShopOrderCompletedPage(this.page);
     await completed.heading.waitFor();
     return completed;
@@ -216,6 +224,13 @@ export class DemoWebShopCheckoutPage {
     }
     await this.backLink(stepId).click();
     await this.activeStep(order[index - 1]).waitFor();
+  }
+
+  /** D5 guard: signed-in checkout must never leave the Billing step. */
+  private async refuseWhenSignedIn(): Promise<void> {
+    if (await this.header.logoutLink.isVisible()) {
+      throw new Error('D5: signed-in checkout must stop at Billing');
+    }
   }
 
   private buttonsContainer(container: ButtonContainer): Locator {

@@ -12,6 +12,10 @@ test.describe('Cash On Delivery order', () => {
     '[DWS-061] Guest places a Cash On Delivery order end to end',
     { tag: ['@places-order', '@chromium-only'] },
     async ({ productPage, cartPage, uniqueGuest, page }) => {
+      // D5 / R-06: one permanent order per run; --repeat-each would place more.
+      if (test.info().repeatEachIndex > 0) {
+        throw new Error('D5: DWS-061 must not be repeated');
+      }
       test.slow();
       const checkoutPage = await test.step('Arrange: Health Book in a guest cart, through to Confirm Order', async () => {
         await productPage.open(PRODUCTS.healthBook.path);

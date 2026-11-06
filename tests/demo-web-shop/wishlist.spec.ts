@@ -78,7 +78,9 @@ test.describe('Wishlist', () => {
         await expect(wishlistPage.heading).toBeVisible();
         await expect(wishlistPage.row(product.name)).toBeVisible();
 
-        await wishlistPage.removeProduct(product.name);
+        // Guarded primitive (D1): removes only this row and verifies every other row is unchanged.
+        const result = await wishlistPage.removeReservedRows([product.name]);
+        expect(result.removed).toEqual([product.name]);
         await expect(header.wishlistLink).toHaveText(`Wishlist (${w})`);
         await expect(wishlistPage.row(product.name)).toHaveCount(0);
       }

@@ -84,8 +84,7 @@ test.describe('Guest cart', () => {
     });
 
     test('[DWS-048] Guest cart persists after a page refresh', async ({ cartPage, header }) => {
-      await header.reload();
-      await cartPage.content.waitFor();
+      await cartPage.reload();
 
       await expect(cartPage.row(product.name)).toBeVisible();
       await expect(cartPage.rowQuantityInput(product.name)).toHaveValue('1');

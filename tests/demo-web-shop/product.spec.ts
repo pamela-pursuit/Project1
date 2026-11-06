@@ -27,9 +27,8 @@ test.describe('Product page', () => {
     await productPage.setQuantity(INVALID.negativeQty);
     await productPage.addToCart();
 
-    // R-23: the bar text is recorded on the first run before it is asserted.
-    const barClass = (await productPage.notification.root.getAttribute('class')) ?? '';
-    recordObservation('R-23', `bar class "${barClass}", text "${(await productPage.notification.root.innerText()).trim()}"`);
+    // R-23 (closed): observed on the first run, now asserted.
+    await expect(productPage.notification.errorMessage).toHaveText(MESSAGES.quantityPositive);
     await expect(header.cartLink).toHaveText('Shopping cart (0)');
   });
 

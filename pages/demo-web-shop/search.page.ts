@@ -2,6 +2,7 @@ import type { Locator, Page } from '@playwright/test';
 import { escapeRegExp } from '../../test-data/demo-web-shop.data';
 import { DemoWebShopHeader } from './header.page';
 import { DemoWebShopNotificationBar } from './notification-bar.page';
+import { searchHeading } from './ready-locators';
 
 export class DemoWebShopSearchPage {
   readonly header: DemoWebShopHeader;
@@ -18,7 +19,7 @@ export class DemoWebShopSearchPage {
   constructor(private readonly page: Page) {
     this.header = new DemoWebShopHeader(page);
     this.notification = new DemoWebShopNotificationBar(page);
-    this.heading = page.getByRole('heading', { level: 1, name: 'Search' });
+    this.heading = searchHeading(page);
     this.keywordInput = page.getByLabel('Search keyword:');
     this.advancedSearch = page.getByLabel('Advanced search');
     // Scoped: the page has 2 "Search" buttons (header and page form).

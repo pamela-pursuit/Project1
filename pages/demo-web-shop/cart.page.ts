@@ -1,9 +1,10 @@
 import type { Locator, Page } from '@playwright/test';
-import { escapeRegExp } from '../../test-data/demo-web-shop.data';
+import { escapeRegExp, MESSAGES } from '../../test-data/demo-web-shop.data';
 import { DemoWebShopCheckoutPage } from './checkout.page';
 import { DemoWebShopHeader } from './header.page';
 import { DemoWebShopLoginPage } from './login.page';
-import { navigateBy } from './navigation';
+import { navigateBy, waitForImagesComplete, waitForReadyOrServerError } from './navigation';
+import { cartContent } from './ready-locators';
 import { DemoWebShopNotificationBar } from './notification-bar.page';
 import { removeReservedRows, snapshotRows, type PurgeResult, type RowSnapshot } from './reserved-rows';
 
@@ -39,12 +40,14 @@ export class DemoWebShopCartPage {
   readonly shippingOptionNames: Locator;
   // Totals table (Sub-Total, Shipping, Tax, Total) without roles.
   readonly totals: Locator;
+  // The site's generic error page (environment failure on a cart form POST).
+  readonly serverError: Locator;
 
   constructor(private readonly page: Page) {
     this.header = new DemoWebShopHeader(page);
     this.notification = new DemoWebShopNotificationBar(page);
     this.heading = page.getByRole('heading', { level: 1, name: 'Shopping cart' });
-    this.content = page.locator('.order-summary-content');
+    this.content = cartContent(page);
     this.productColumnHeader = page.getByRole('columnheader', { name: 'Product(s)' });
     this.rows = page.locator('table.cart tbody tr');
     this.updateCartButton = page.getByRole('button', { name: 'Update shopping cart' });
@@ -65,6 +68,7 @@ export class DemoWebShopCartPage {
     this.shippingOptions = page.locator('.shipping-results');
     this.shippingOptionNames = this.shippingOptions.locator('.option-name');
     this.totals = page.locator('.cart-total');
+    this.serverError = page.getByText(MESSAGES.serverError);
   }
 
   /** exact: "Computing and Internet" must not match "Copy of Computing and Internet EX". */
@@ -96,7 +100,15 @@ export class DemoWebShopCartPage {
   async open(): Promise<this> {
     await this.page.goto('cart', { waitUntil: 'domcontentloaded' });
     await this.content.waitFor();
+    await this.waitForRowImages();
     return this;
+  }
+
+  /** Browser reload (never waits for `load`), then the cart ready wait. */
+  async reload(): Promise<void> {
+    await this.page.reload({ waitUntil: 'domcontentloaded' });
+    await this.content.waitFor();
+    await this.waitForRowImages();
   }
 
   async productNames(): Promise<string[]> {
@@ -118,7 +130,13 @@ export class DemoWebShopCartPage {
   /** Form POST back to /cart. */
   async updateCart(): Promise<void> {
     await navigateBy(this.page, () => this.updateCartButton.click(), /\/cart/);
-    await this.content.waitFor();
+    await waitForReadyOrServerError(this.content, this.serverError, 'Update shopping cart');
+    await this.waitForRowImages();
+  }
+
+  /** Row thumbnails have no size; wait for them so controls do not shift under a click. */
+  async waitForRowImages(): Promise<void> {
+    await waitForImagesComplete(this.page, 'table.cart tbody tr img');
   }
 
   async removeProduct(name: string): Promise<void> {
@@ -168,12 +186,14 @@ export class DemoWebShopCartPage {
   async applyCoupon(code: string): Promise<void> {
     await this.couponInput.fill(code);
     await navigateBy(this.page, () => this.applyCouponButton.click(), /\/cart/);
+    await waitForReadyOrServerError(this.content, this.serverError, 'Apply coupon');
     await this.couponMessage.waitFor();
   }
 
   async applyGiftCard(code: string): Promise<void> {
     await this.giftCardInput.fill(code);
     await navigateBy(this.page, () => this.addGiftCardButton.click(), /\/cart/);
+    await waitForReadyOrServerError(this.content, this.serverError, 'Add gift card');
     await this.giftCardMessage.waitFor();
   }
 
@@ -186,6 +206,7 @@ export class DemoWebShopCartPage {
     }
     await this.zip.fill(options.zip);
     await navigateBy(this.page, () => this.estimateShippingButton.click(), /\/cart/);
+    await waitForReadyOrServerError(this.content, this.serverError, 'Estimate shipping');
     await this.shippingOptions.waitFor();
   }
 }

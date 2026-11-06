@@ -10,18 +10,27 @@ Resume in a new session with `/e2e-agent https://demowebshop.tricentis.com --app
 | 1b | Requirements and user decisions D1 to D5 | Done | requirements.md (section 8), intake.md |
 | 2 | Scenario catalogue and Excel workbook | Done (70 scenarios, 0 errors) | scenarios.json, demo-web-shop-e2e-scenarios.xlsx |
 | 3a | Architecture | Done | architecture.md |
-| 3b | Implementation (68 tests) and smoke | **In progress**: files written; tsc, list, smoke and catalogue update pending | pages/, fixtures/, test-data/, tests/demo-web-shop/ |
-| 4 | Execution (user asked for parallel; see plan below) | Not started | artifacts/demo-web-shop/runs/ |
-| 4b | Failure investigation and fixes (max 3 iterations per failure) | Not started | |
-| 5a | Quality review | Not started | |
-| 5b | Delivery report, commit and push | Not started | delivery-report.md |
+| 3b | Implementation (68 tests) and smoke | Done: tsc OK, 204 listed, Chromium smoke passed, Laptop untouched, no account values in reports; checkpoint commit 9a5b5fc | pages/, fixtures/, test-data/, tests/demo-web-shop/ |
+| 4 | Execution (user asked for parallel; see plan below) | Done: run 1 gave 186 passed, 4 failed, 14 skipped (Pass A re-run for reports; guest COD order #2411261) | artifacts/demo-web-shop/runs/ |
+| 4b | Failure investigation and fixes (max 3 iterations per failure) | Done in 1 iteration: DWS-069 (retrying waits), DWS-056 (image layout shift), DWS-050 (demo server error, fail-fast). Re-runs green; all 68 automated scenarios Passed | scenarios.json, workbook |
+| 5a | Quality review | Done: re-review verdict **Ready** (2026-11-06); no Blocker or Major; 3 optional Minors (DWS-069 positive control, DWS-068 redundant check, untracked template file) | |
+| 5b | Delivery report, commit and push | Done (2026-11-06): verdict **Ready with limitations** | delivery-report.md |
 
 ## Execution plan (user: "run in parallel", 2026-11-05)
 
-- **Pass A, guest specs:** chromium, firefox and webkit with several workers in parallel.
-- **Pass B, signed-in specs** (any spec using the `existingUser` / `signedIn` fixtures): `--workers=1`, because D2 (one shared account) still applies. Chromium-only tests remain Chromium-only.
+- **Pass A, guest-only files, `--workers=3`, all 3 browsers:** search, listing, product, resilience, cart-guest, checkout-guest, checkout-cod, responsive.
+- **Pass B, files touching the account, `--workers=1`:** auth, session, authorization, register, cart-signed-in, checkout-signed-in, wishlist, account, accessibility. D2 (one shared account) still applies, and Chromium-only tests remain Chromium-only.
 - After each pass: `node scripts/workbook.mjs sync --app demo-web-shop` then `build`.
 
 ## Constraints to keep (see intake.md D1 to D5)
 
 Never touch the "14.1-inch Laptop" in the account cart. COD orders only as a guest. Signed-in checkout stops at Billing. No account creation. At most one wrong-password login per run. Never read or print credentials.
+
+## Guest COD demo orders placed (permanent, accepted by the user under D3/D5)
+
+| Order | When | Source |
+| --- | --- | --- |
+| #2411222 | 2026-11-05 | Discovery probe c3 |
+| (number not captured) | run 2026-11-05_15-07-20 | First Pass A; no JSON reporter was used |
+| #2411261 | run 2026-11-05_15-27-19 | Pass A re-run |
+| #2411276 | run 2026-11-05_15-59-08 | Final full run |

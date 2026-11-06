@@ -96,7 +96,7 @@ test.describe('Guest checkout', () => {
         for (const [label, value] of Object.entries(HEALTH_BOOK_COD_ORDER.confirmTotals)) {
           await expect(checkoutPage.summaryTotalValue(label), label).toHaveText(value);
         }
-        await expect(checkoutPage.confirmButton).toBeVisible();
+        expect(await checkoutPage.confirmButtonVisible(), 'Confirm button is shown (not selected)').toBe(true);
       });
 
       await test.step('Cleanup: empty the guest cart', async () => {

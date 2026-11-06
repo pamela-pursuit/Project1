@@ -1,6 +1,8 @@
 import type { Locator, Page } from '@playwright/test';
+import { MESSAGES } from '../../test-data/demo-web-shop.data';
 import { DemoWebShopHeader } from './header.page';
-import { navigateBy } from './navigation';
+import { navigateBy, waitForImagesComplete, waitForReadyOrServerError } from './navigation';
+import { wishlistHeading } from './ready-locators';
 import { DemoWebShopNotificationBar } from './notification-bar.page';
 import { removeReservedRows, snapshotRows, type PurgeResult } from './reserved-rows';
 
@@ -17,17 +19,20 @@ export class DemoWebShopWishlistPage {
   // Holds "Your wishlist URL for sharing:" and the link (probe P4).
   readonly shareInfo: Locator;
   readonly shareLink: Locator;
+  // The site's generic error page (environment failure on a form POST).
+  readonly serverError: Locator;
 
   constructor(private readonly page: Page) {
     this.header = new DemoWebShopHeader(page);
     this.notification = new DemoWebShopNotificationBar(page);
-    this.heading = page.getByRole('heading', { level: 1, name: 'Wishlist' });
+    this.heading = wishlistHeading(page);
     this.content = page.locator('.wishlist-content');
     this.rows = this.content.locator('table.cart tbody tr');
     this.updateWishlistButton = page.getByRole('button', { name: 'Update wishlist' });
     this.addToCartButton = page.getByRole('button', { name: 'Add to cart' });
     this.shareInfo = page.locator('.share-info');
     this.shareLink = this.shareInfo.getByRole('link');
+    this.serverError = page.getByText(MESSAGES.serverError);
   }
 
   row(name: string): Locator {
@@ -54,6 +59,7 @@ export class DemoWebShopWishlistPage {
   async open(): Promise<this> {
     await this.page.goto('wishlist', { waitUntil: 'domcontentloaded' });
     await this.heading.waitFor();
+    await this.waitForRowImages();
     return this;
   }
 
@@ -63,7 +69,16 @@ export class DemoWebShopWishlistPage {
 
   async updateWishlist(): Promise<void> {
     await navigateBy(this.page, () => this.updateWishlistButton.click(), /\/wishlist/);
-    await this.heading.waitFor();
+    await waitForReadyOrServerError(this.heading, this.serverError, 'Update wishlist');
+    await this.waitForRowImages();
+  }
+
+  /**
+   * Row thumbnails have no width/height; a late load shifts the row checkboxes (24.5 px on
+   * Firefox, DWS-056), so the page waits for them before any row control is used.
+   */
+  async waitForRowImages(): Promise<void> {
+    await waitForImagesComplete(this.page, '.wishlist-content table.cart tbody tr img');
   }
 
   async removeProduct(name: string): Promise<void> {
